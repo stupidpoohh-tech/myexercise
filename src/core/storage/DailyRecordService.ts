@@ -11,7 +11,11 @@ export function dayStatus(r: DailyRecord | undefined | null): DayStatus {
 export interface Stats {
   todayReps: number;
   monthGoalDays: number;
+  /** 선택한 달의 스쿼트 합계 */
+  monthReps: number;
   totalReps: number;
+  /** 전체 목표 달성일 (= 모은 포도알) */
+  totalGoalDays: number;
   currentStreak: number;
   longestStreak: number;
 }
@@ -45,7 +49,9 @@ export function computeStats(records: DailyRecord[], today = dateKey(), monthPre
   return {
     todayReps: map.get(today)?.totalReps ?? 0,
     monthGoalDays: doneDates.filter((d) => d.startsWith(monthPrefix)).length,
+    monthReps: records.filter((r) => r.date.startsWith(monthPrefix)).reduce((s, r) => s + r.totalReps, 0),
     totalReps: records.reduce((s, r) => s + r.totalReps, 0),
+    totalGoalDays: doneDates.length,
     currentStreak,
     longestStreak,
   };

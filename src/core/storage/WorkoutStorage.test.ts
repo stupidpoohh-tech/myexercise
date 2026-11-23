@@ -143,6 +143,11 @@ describe('통계', () => {
     expect(s.totalReps).toBe(810);
     expect(s.currentStreak).toBe(3); // 오늘은 아직 진행 중 — 어제까지의 연속
     expect(s.longestStreak).toBe(3);
+    expect(s.monthReps).toBe(610);
+    expect(s.totalGoalDays).toBe(7);
+    // 다른 달 기준으로 계산하면 월 통계만 바뀌고 전체 통계는 그대로
+    const oct = computeStats(records, '2026-11-23', '2026-10');
+    expect(oct).toMatchObject({ monthGoalDays: 2, monthReps: 200, totalReps: 810, totalGoalDays: 7 });
   });
 
   it('오늘 달성하면 오늘까지 포함, 하루 빠지면 끊김', () => {

@@ -68,6 +68,7 @@ function ReadyView({ onStart }: { onStart: () => void }) {
         <div className="stage stage-fit">
           <CharacterStage />
         </div>
+        <GrowthTag />
 
         <Button icon={<Play size={20} fill="currentColor" strokeWidth={0} />} onClick={onStart}>
           {reps >= DAILY_GOAL ? '운동 더 하기' : '운동 시작'}
@@ -75,6 +76,18 @@ function ReadyView({ onStart }: { onStart: () => void }) {
       </Card>
       {error && <p className="error-text">기록을 불러오지 못했습니다: {error}</p>}
     </main>
+  );
+}
+
+/** 캐릭터 성장 상태 (성장 규칙은 character/growth.ts) */
+function GrowthTag() {
+  const g = useGrowth();
+  if (!g.loaded) return null;
+  return (
+    <div className="growth-tag" aria-label={g.next ? `레벨 ${g.stage}, 다음 성장까지 포도알 ${g.next.remaining}개` : `레벨 ${g.stage}, 최종 단계`}>
+      <b>LV.{g.stage}</b>
+      <span>{g.next ? `다음 성장까지 ${g.next.remaining}알` : '최종 단계'}</span>
+    </div>
   );
 }
 
