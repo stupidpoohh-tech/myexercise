@@ -53,14 +53,14 @@ export function SettingsSheet({ open, onClose }: { open: boolean; onClose: () =>
       <h3 className="bs-section">데이터 관리</h3>
       <div className="settings-list">
         <button className="settings-item" onClick={() => void exportJson()}>
-          <Download size={20} strokeWidth={1.9} />
+          <Download size={20} strokeWidth={1.6} />
           <span>
             <b>데이터 내보내기</b>
             <small>운동 기록을 JSON 파일로 저장합니다</small>
           </span>
         </button>
         <button className="settings-item" onClick={() => fileRef.current?.click()}>
-          <Upload size={20} strokeWidth={1.9} />
+          <Upload size={20} strokeWidth={1.6} />
           <span>
             <b>데이터 가져오기</b>
             <small>내보낸 파일로 기록을 복원합니다 · 중복은 합치지 않습니다</small>

@@ -1,4 +1,3 @@
-import { Minus, Pause, Play, Plus } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { DAILY_GOAL } from '../../core/storage/types';
 import type { RejectReason } from '../../core/types';
@@ -6,9 +5,9 @@ import { workout } from '../../services';
 import { formatKorean } from '../../core/util/date';
 import { CharacterStage } from '../components/CharacterStage';
 import { AppHeader } from '../components/Chrome';
-import { GrapeBerry, SquatIcon } from '../components/graphics';
+import { GrapeBerry } from '../components/graphics';
 import { SENSOR_LABEL, SensorHelp } from '../components/SensorHelp';
-import { Button, Card, Notice, ProgressBar } from '../components/ui';
+import { Button, Notice, ProgressBar } from '../components/ui';
 import { useDailyRecords, useToday } from '../hooks/useRecords';
 import { useGrowth } from '../hooks/useGrowth';
 import { useWorkout } from '../hooks/useWorkout';
@@ -42,40 +41,38 @@ function ReadyView({ onStart }: { onStart: () => void }) {
   const reps = records.find((r) => r.date === today)?.totalReps ?? 0;
   return (
     <main className="screen screen-fit">
-      <AppHeader />
-      <h1 className="date-title">{formatKorean(today)}</h1>
+      <AppHeader right={<span className="top-date">{formatKorean(today)}</span>} />
 
-      <Card className="today-card fit-card">
-        <div className="today-info">
-          <div className="today-label">
-            <span className="icon-tile">
-              <SquatIcon size={26} />
-            </span>
-            <div>
-              <div className="caption">오늘의 운동</div>
-              <div className="card-title">스쿼트 {DAILY_GOAL}개</div>
-            </div>
-          </div>
-          <div className="today-progress">
-            <div className="reps">
-              <span className="reps-now">{reps}</span>
-              <span className="reps-goal"> / {DAILY_GOAL}</span>
-            </div>
-            <ProgressBar value={reps} max={DAILY_GOAL} />
-          </div>
-        </div>
+      <CountBlock label="오늘의 스쿼트" reps={reps} />
 
-        <div className="stage stage-fit">
-          <CharacterStage />
-        </div>
-        <GrowthTag />
+      <div className="stage stage-fit">
+        <CharacterStage />
+      </div>
+      <GrowthTag />
 
-        <Button icon={<Play size={20} fill="currentColor" strokeWidth={0} />} onClick={onStart}>
-          {reps >= DAILY_GOAL ? '운동 더 하기' : '운동 시작'}
-        </Button>
-      </Card>
+      <Button onClick={onStart}>{reps >= DAILY_GOAL ? '운동 더 하기' : '운동 시작'}</Button>
       {error && <p className="error-text">기록을 불러오지 못했습니다: {error}</p>}
     </main>
+  );
+}
+
+/** 오늘 횟수 — 큰 숫자 + 얇은 진행선 */
+function CountBlock({ label, reps, sub, pulse }: { label: string; reps: number; sub?: string; pulse?: boolean }) {
+  return (
+    <section className="count-block" aria-live="polite">
+      <div className="count-label">
+        <span>{label}</span>
+        <span>목표 {DAILY_GOAL}</span>
+      </div>
+      <div className="count-num">
+        <span key={reps} className={pulse ? 'bump' : ''}>
+          {reps}
+        </span>
+        <small>/{DAILY_GOAL}</small>
+      </div>
+      <ProgressBar value={reps} max={DAILY_GOAL} />
+      {sub && <div className="count-sub">{sub}</div>}
+    </section>
   );
 }
 
@@ -86,7 +83,7 @@ function GrowthTag() {
   return (
     <div className="growth-tag" aria-label={g.next ? `레벨 ${g.stage}, 다음 성장까지 포도알 ${g.next.remaining}개` : `레벨 ${g.stage}, 최종 단계`}>
       <b>LV.{g.stage}</b>
-      <span>{g.next ? `다음 성장까지 ${g.next.remaining}알` : '최종 단계'}</span>
+      <span>{g.next ? `다음 성장까지 포도알 ${g.next.remaining}개` : '최종 단계'}</span>
     </div>
   );
 }
@@ -157,31 +154,18 @@ function ActiveView({ onExit }: { onExit: () => void }) {
 
   return (
     <main className={`screen workout ${paused ? 'is-paused' : ''}`}>
-      <header className="wo-header">
-        <div className="wo-title">
-          <SquatIcon size={22} />
-          스쿼트
-        </div>
-        <div className={`status-pill ${sensorOk ? 'ok' : w.mode === 'manual' ? 'manual' : 'bad'}`}>
-          <i className="dot" />
-          {w.mode === 'manual' ? '수동 기록' : SENSOR_LABEL[w.sensorStatus]}
-        </div>
-      </header>
+      <AppHeader
+        title="스쿼트"
+        right={
+          <span className={`status ${sensorOk ? 'ok' : w.mode === 'manual' ? 'manual' : 'bad'}`}>
+            <i className="dot" />
+            {w.mode === 'manual' ? '수동 기록' : SENSOR_LABEL[w.sensorStatus]}
+          </span>
+        }
+      />
 
-      <Card className="today-card wo-card">
-        <div className="wo-count" aria-live="polite">
-          <div className="caption">오늘</div>
-          <div className="reps">
-            <span key={w.todayReps} className={`reps-now ${repPulse ? 'bump' : ''}`}>
-              {w.todayReps}
-            </span>
-            <span className="reps-goal"> / {DAILY_GOAL}</span>
-          </div>
-          <ProgressBar value={w.todayReps} max={DAILY_GOAL} />
-          <div className="caption">
-            이번 운동 {w.sessionReps}회{done ? ' · 오늘 목표 달성' : ''}
-          </div>
-        </div>
+      <CountBlock label="오늘" reps={w.todayReps} pulse={repPulse} sub={`이번 운동 ${w.sessionReps}회${done ? ' · 오늘 목표 달성' : ''}`} />
+      <div className="wo-card">
         <div className="stage">
           <CharacterStage />
           <div className="stage-msg" aria-live="polite">
@@ -191,13 +175,11 @@ function ActiveView({ onExit }: { onExit: () => void }) {
             {growToast ? (
               <span className="msg msg-grape">캐릭터가 {growth.stage}단계로 성장했어요</span>
             ) : grapeToast && (
-              <span className="msg msg-grape">
-                <GrapeBerry filled size={18} pop /> 오늘의 포도알을 모았어요
-              </span>
+              <span className="msg msg-grape">오늘의 포도알을 모았어요</span>
             )}
           </div>
         </div>
-      </Card>
+      </div>
 
       {w.phase === 'calibrating' && w.calibration && (
         <Notice
@@ -227,20 +209,18 @@ function ActiveView({ onExit }: { onExit: () => void }) {
       )}
 
       <div className="wo-controls">
-        <Button variant="secondary" className="btn-square" aria-label="1회 빼기" onClick={() => workout.adjust(-1)} disabled={ended} icon={<Minus size={22} />}>
-          1
+        <Button variant="secondary" className="btn-square" aria-label="1회 빼기" onClick={() => workout.adjust(-1)} disabled={ended}>
+          −1
         </Button>
         {paused ? (
-          <Button onClick={() => workout.resume()} icon={<Play size={18} fill="currentColor" strokeWidth={0} />}>
-            재개
-          </Button>
+          <Button onClick={() => workout.resume()}>재개</Button>
         ) : (
-          <Button variant="secondary" onClick={() => workout.pause()} disabled={ended || w.phase === 'starting'} icon={<Pause size={18} />}>
+          <Button variant="secondary" onClick={() => workout.pause()} disabled={ended || w.phase === 'starting'}>
             일시정지
           </Button>
         )}
-        <Button variant="secondary" className="btn-square" aria-label="1회 더하기" onClick={() => workout.adjust(1)} disabled={ended} icon={<Plus size={22} />}>
-          1
+        <Button variant="secondary" className="btn-square" aria-label="1회 더하기" onClick={() => workout.adjust(1)} disabled={ended}>
+          +1
         </Button>
       </div>
       <div className="wo-meta">

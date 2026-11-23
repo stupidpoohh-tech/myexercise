@@ -1,6 +1,5 @@
 import { Dumbbell, Grape } from 'lucide-react';
 import type { ReactNode } from 'react';
-import { GrapeLogo } from './graphics';
 
 export type Route = 'workout' | 'grapes';
 
@@ -19,14 +18,12 @@ export function hashFor(r: Route): string {
   return r === 'workout' ? '#/' : `#/${r}`;
 }
 
-/** 상단 헤더: 서비스명만 표시 */
-export function AppHeader() {
+/** 상단 헤더: 왼쪽 워드마크(또는 화면 제목), 오른쪽 보조 정보 */
+export function AppHeader({ title, right }: { title?: string; right?: ReactNode }) {
   return (
     <header className="app-header">
-      <div className="brand">
-        <GrapeLogo />
-        <span>{BRAND}</span>
-      </div>
+      {title ? <h1 className="page-title">{title}</h1> : <span className="wordmark">{BRAND}</span>}
+      {right}
     </header>
   );
 }
@@ -34,8 +31,8 @@ export function AppHeader() {
 /** 페이지 헤더 (포도알 화면 등) */
 export function PageHeader({ title, right }: { title: string; right?: ReactNode }) {
   return (
-    <header className="page-header">
-      <h1>{title}</h1>
+    <header className="app-header">
+      <h1 className="page-title">{title}</h1>
       {right}
     </header>
   );
@@ -50,7 +47,7 @@ export function SwitchFab({ route, onNavigate }: { route: Route; onNavigate: (r:
   const label = to === 'grapes' ? '포도알 기록 보기' : '운동 화면으로';
   return (
     <button className="switch-fab" aria-label={label} title={label} onClick={() => onNavigate(to)}>
-      {to === 'grapes' ? <Grape size={26} strokeWidth={2} /> : <Dumbbell size={26} strokeWidth={2} />}
+      {to === 'grapes' ? <Grape size={22} strokeWidth={1.6} /> : <Dumbbell size={22} strokeWidth={1.6} />}
     </button>
   );
 }

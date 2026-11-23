@@ -54,7 +54,7 @@ export function BottomSheet({ open, onClose, title, children }: { open: boolean;
             {title}
           </h2>
           <button ref={closeRef} className="icon-btn" aria-label="닫기" onClick={onClose}>
-            <X size={22} strokeWidth={2} />
+            <X size={22} strokeWidth={1.6} />
           </button>
         </div>
         <div className="bs-body">{children}</div>
