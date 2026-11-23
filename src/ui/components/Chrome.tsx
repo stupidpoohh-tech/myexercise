@@ -1,8 +1,22 @@
-import { CalendarDays, ChartNoAxesColumn, Dumbbell, House, Menu, UserRound, X } from 'lucide-react';
+import { CalendarDays, Dumbbell, Grape, Menu, UserRound, X } from 'lucide-react';
 import { useState, type ReactNode } from 'react';
 import { GrapeLogo } from './graphics';
 
-export type Route = 'home' | 'workout' | 'records' | 'character';
+export type Route = 'workout' | 'grapes' | 'character';
+
+export const ROUTES: Route[] = ['workout', 'grapes', 'character'];
+
+/** 해시 경로 → 탭. 이전 4탭 구조의 경로(#/, #/home, #/records)는 새 탭으로 연결한다 */
+export function routeFromHash(hash: string): Route {
+  const h = hash.replace(/^#\/?/, '').split(/[?&]/)[0];
+  if (h === 'grapes' || h === 'records') return 'grapes';
+  if (h === 'character') return 'character';
+  return 'workout'; // '', 'home', 'workout' 및 알 수 없는 경로
+}
+
+export function hashFor(r: Route): string {
+  return r === 'workout' ? '#/' : `#/${r}`;
+}
 
 export const BRAND = '운동 포도알';
 
@@ -19,7 +33,7 @@ export function AppHeader({ onNavigate }: { onNavigate: (r: Route) => void }) {
           <GrapeLogo />
           <span>{BRAND}</span>
         </div>
-        <button className="icon-btn" aria-label="달력" onClick={() => onNavigate('records')}>
+        <button className="icon-btn" aria-label="포도알 기록" onClick={() => onNavigate('grapes')}>
           <CalendarDays size={24} strokeWidth={2} />
         </button>
       </header>
@@ -40,9 +54,8 @@ export function PageHeader({ title, right }: { title: string; right?: ReactNode 
 
 function MenuSheet({ onClose, onNavigate }: { onClose: () => void; onNavigate: (r: Route) => void }) {
   const items: [Route, string][] = [
-    ['home', '홈'],
     ['workout', '운동'],
-    ['records', '기록 · 백업'],
+    ['grapes', '포도알 · 기록 백업'],
     ['character', '내 캐릭터'],
   ];
   return (
@@ -67,10 +80,9 @@ function MenuSheet({ onClose, onNavigate }: { onClose: () => void; onNavigate: (
   );
 }
 
-const TABS: { route: Route; label: string; Icon: typeof House }[] = [
-  { route: 'home', label: '홈', Icon: House },
+const TABS: { route: Route; label: string; Icon: typeof Dumbbell }[] = [
   { route: 'workout', label: '운동', Icon: Dumbbell },
-  { route: 'records', label: '기록', Icon: ChartNoAxesColumn },
+  { route: 'grapes', label: '포도알', Icon: Grape },
   { route: 'character', label: '내 캐릭터', Icon: UserRound },
 ];
 

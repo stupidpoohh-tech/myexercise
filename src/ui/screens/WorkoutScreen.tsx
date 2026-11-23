@@ -3,7 +3,9 @@ import { useEffect, useRef, useState } from 'react';
 import { DAILY_GOAL } from '../../core/storage/types';
 import type { RejectReason } from '../../core/types';
 import { workout } from '../../services';
+import { formatKorean } from '../../core/util/date';
 import { CharacterStage } from '../components/CharacterStage';
+import { AppHeader, type Route } from '../components/Chrome';
 import { GrapeBerry, SquatIcon } from '../components/graphics';
 import { SENSOR_LABEL, SensorHelp } from '../components/SensorHelp';
 import { Button, Card, Notice, ProgressBar } from '../components/ui';
@@ -24,53 +26,53 @@ const REJECT_TEXT: Record<RejectReason, string> = {
   'too-erratic': '움직임이 불규칙해요',
 };
 
-/** 운동 탭: 운동 전에는 준비 화면, 운동 중에는 카운트 화면 */
-export function WorkoutScreen({ onStart, onExit }: { onStart: () => void; onExit: () => void }) {
+/**
+ * 운동 탭 (메인 화면). 운동 전에는 오늘의 스쿼트 · 캐릭터 · 시작 버튼만 한 화면에 보여 주고,
+ * 운동 중에는 카운트 화면으로 전환한다.
+ */
+export function WorkoutScreen({ onStart, onExit, onNavigate }: { onStart: () => void; onExit: () => void; onNavigate: (r: Route) => void }) {
   const w = useWorkout();
-  return w.phase === 'idle' ? <ReadyView onStart={onStart} /> : <ActiveView onExit={onExit} />;
+  return w.phase === 'idle' ? <ReadyView onStart={onStart} onNavigate={onNavigate} /> : <ActiveView onExit={onExit} />;
 }
 
-function ReadyView({ onStart }: { onStart: () => void }) {
+function ReadyView({ onStart, onNavigate }: { onStart: () => void; onNavigate: (r: Route) => void }) {
   const today = useToday();
-  const { records } = useDailyRecords();
+  const { records, error } = useDailyRecords();
   const reps = records.find((r) => r.date === today)?.totalReps ?? 0;
   return (
-    <main className="screen">
-      <header className="page-header">
-        <h1>운동</h1>
-      </header>
-      <Card className="today-card">
-        <div className="wo-count">
-          <div className="caption">오늘</div>
-          <div className="reps">
-            <span className="reps-now">{reps}</span>
-            <span className="reps-goal"> / {DAILY_GOAL}</span>
+    <main className="screen screen-fit">
+      <AppHeader onNavigate={onNavigate} />
+      <h1 className="date-title">{formatKorean(today)}</h1>
+
+      <Card className="today-card fit-card">
+        <div className="today-info">
+          <div className="today-label">
+            <span className="icon-tile">
+              <SquatIcon size={26} />
+            </span>
+            <div>
+              <div className="caption">오늘의 운동</div>
+              <div className="card-title">스쿼트 {DAILY_GOAL}개</div>
+            </div>
           </div>
-          <ProgressBar value={reps} max={DAILY_GOAL} />
+          <div className="today-progress">
+            <div className="reps">
+              <span className="reps-now">{reps}</span>
+              <span className="reps-goal"> / {DAILY_GOAL}</span>
+            </div>
+            <ProgressBar value={reps} max={DAILY_GOAL} />
+          </div>
         </div>
-        <div className="stage">
+
+        <div className="stage stage-fit">
           <CharacterStage />
         </div>
+
         <Button icon={<Play size={20} fill="currentColor" strokeWidth={0} />} onClick={onStart}>
-          운동 시작
+          {reps >= DAILY_GOAL ? '운동 더 하기' : '운동 시작'}
         </Button>
       </Card>
-      <Card tone="pale" className="howto">
-        <div className="howto-row">
-          <span className="icon-tile">
-            <SquatIcon />
-          </span>
-          <div>
-            <div className="card-title">이렇게 운동해요</div>
-            <ol>
-              <li>휴대폰을 양손으로 가슴 앞에 듭니다.</li>
-              <li>처음 3회는 움직임을 맞추는 보정 단계입니다.</li>
-              <li>이후 스쿼트하면 횟수가 자동으로 올라갑니다.</li>
-            </ol>
-            <p className="caption">인식이 틀리면 −1 / +1 로 바로 고칠 수 있습니다.</p>
-          </div>
-        </div>
-      </Card>
+      {error && <p className="error-text">기록을 불러오지 못했습니다: {error}</p>}
     </main>
   );
 }

@@ -1,11 +1,11 @@
-import { ChevronLeft, ChevronRight, Download, Upload } from 'lucide-react';
+import { Check, ChevronLeft, ChevronRight, Download, Upload } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { computeStats, dayStatus } from '../../core/storage/DailyRecordService';
+import { computeStats } from '../../core/storage/DailyRecordService';
 import { DAILY_GOAL, type WorkoutSession } from '../../core/storage/types';
-import { formatKorean, formatTime, monthGrid, parseKey, WEEKDAYS } from '../../core/util/date';
+import { dateKey, formatKorean, formatTime } from '../../core/util/date';
 import { storage } from '../../services';
 import { PageHeader } from '../components/Chrome';
-import { GrapeBerry } from '../components/graphics';
+import { DayBerry } from '../components/graphics';
 import { Button, Card, Notice, SectionHeader } from '../components/ui';
 import { useDailyRecords, useToday } from '../hooks/useRecords';
 
@@ -16,12 +16,29 @@ const STATUS_TEXT: Record<WorkoutSession['status'], string> = {
   interrupted: '중단됨',
 };
 
-export function RecordsScreen() {
+/**
+ * 포도송이 모양 배치. 위에서부터 줄마다 놓을 알 수이며, 날짜 수(28~31)만큼 앞에서부터 채운다.
+ * 합계 31 — 짧은 달은 아래쪽 끝이 줄어든다.
+ */
+const BUNCH_ROWS = [5, 6, 6, 5, 4, 3, 2];
+
+function bunchRows(days: number): number[][] {
+  const rows: number[][] = [];
+  let d = 1;
+  for (const n of BUNCH_ROWS) {
+    const row: number[] = [];
+    for (let i = 0; i < n && d <= days; i++) row.push(d++);
+    if (row.length) rows.push(row);
+  }
+  return rows;
+}
+
+export function GrapesScreen() {
   const today = useToday();
-  const { records, reload, error } = useDailyRecords();
+  const { records, reload, error, loaded } = useDailyRecords();
   const [cursor, setCursor] = useState(() => {
-    const d = parseKey(today);
-    return { y: d.getFullYear(), m: d.getMonth() };
+    const [y, m] = today.split('-').map(Number);
+    return { y, m: m - 1 };
   });
   const [selected, setSelected] = useState(today);
   const [sessions, setSessions] = useState<WorkoutSession[] | null>(null);
@@ -31,7 +48,9 @@ export function RecordsScreen() {
   const map = useMemo(() => new Map(records.map((r) => [r.date, r])), [records]);
   const monthPrefix = `${cursor.y}-${String(cursor.m + 1).padStart(2, '0')}`;
   const stats = useMemo(() => computeStats(records, today, monthPrefix), [records, today, monthPrefix]);
-  const weeks = monthGrid(cursor.y, cursor.m);
+  const daysInMonth = new Date(cursor.y, cursor.m + 1, 0).getDate();
+  const rows = bunchRows(daysInMonth);
+  const keyOf = (day: number) => dateKey(new Date(cursor.y, cursor.m, day));
 
   useEffect(() => {
     let alive = true;
@@ -45,11 +64,13 @@ export function RecordsScreen() {
     };
   }, [selected, records]);
 
-  const move = (delta: number) =>
-    setCursor(({ y, m }) => {
-      const d = new Date(y, m + delta, 1);
-      return { y: d.getFullYear(), m: d.getMonth() };
-    });
+  const move = (delta: number) => {
+    const d = new Date(cursor.y, cursor.m + delta, 1);
+    setCursor({ y: d.getFullYear(), m: d.getMonth() });
+    // 이동한 달에 오늘이 있으면 오늘, 아니면 1일을 선택
+    const k = dateKey(d);
+    setSelected(today.startsWith(k.slice(0, 7)) ? today : k);
+  };
 
   const exportJson = async () => {
     try {
@@ -81,85 +102,94 @@ export function RecordsScreen() {
   };
 
   const sel = map.get(selected);
+  const selReps = sel?.totalReps ?? 0;
+  const isFuture = selected > today;
 
   return (
     <main className="screen">
-      <PageHeader title="기록" />
+      <PageHeader title="포도알" />
 
-      <Card tone="pale" className="stats">
-        <Stat label="오늘" value={stats.todayReps} unit="회" />
-        <Stat label={`${cursor.m + 1}월 포도알`} value={stats.monthGoalDays} unit="알" />
-        <Stat label="누적" value={stats.totalReps} unit="회" />
-        <Stat label="연속 달성" value={stats.currentStreak} unit="일" />
-        <Stat label="최장 연속" value={stats.longestStreak} unit="일" />
-      </Card>
-
-      <section className="calendar">
-        <div className="cal-nav">
+      <Card tone="pale" className="bunch-card">
+        <div className="bunch-head">
           <button className="icon-btn" onClick={() => move(-1)} aria-label="이전 달">
             <ChevronLeft size={22} strokeWidth={2} />
           </button>
-          <h2 className="section-title">
-            {cursor.y}년 {cursor.m + 1}월
-          </h2>
+          <div className="bunch-title">
+            <h2 className="section-title">
+              {cursor.y}년 {cursor.m + 1}월
+            </h2>
+            <div className="bunch-count" aria-label={`목표 달성 ${stats.monthGoalDays}일, 총 ${daysInMonth}일`}>
+              <b>{stats.monthGoalDays}</b> / {daysInMonth}
+            </div>
+          </div>
           <button className="icon-btn" onClick={() => move(1)} aria-label="다음 달">
             <ChevronRight size={22} strokeWidth={2} />
           </button>
         </div>
-        <div className="cal-grid">
-          {WEEKDAYS.map((w) => (
-            <div key={w} className="cal-wd">
-              {w}
+
+        <div className="bunch" role="group" aria-label={`${cursor.m + 1}월 포도알`}>
+          <svg className="bunch-stem" viewBox="0 0 80 40" aria-hidden="true">
+            <path d="M40 40 C40 28 42 18 46 8" stroke="#6b4a2f" strokeWidth="4" fill="none" strokeLinecap="round" />
+            <path d="M44 16 C52 2 70 2 76 10 C68 20 52 22 44 16Z" fill="#7cc45a" stroke="#4d9a35" strokeWidth="1.5" />
+          </svg>
+          {rows.map((row, i) => (
+            <div className="bunch-row" key={i}>
+              {row.map((day) => {
+                const k = keyOf(day);
+                const reps = map.get(k)?.totalReps ?? 0;
+                return (
+                  <button
+                    key={day}
+                    className="bunch-berry"
+                    onClick={() => setSelected(k)}
+                    aria-pressed={k === selected}
+                    aria-label={`${formatKorean(k)} ${reps}회${reps >= DAILY_GOAL ? ', 목표 달성' : ''}`}
+                  >
+                    <DayBerry day={day} ratio={reps / DAILY_GOAL} today={k === today} selected={k === selected} />
+                  </button>
+                );
+              })}
             </div>
           ))}
-          {weeks.flat().map((d, i) => {
-            if (!d) return <div key={`e${i}`} />;
-            const r = map.get(d);
-            const st = dayStatus(r);
-            return (
-              <button
-                key={d}
-                className={`cal-cell st-${st} ${d === selected ? 'is-selected' : ''} ${d === today ? 'is-today' : ''}`}
-                onClick={() => setSelected(d)}
-                aria-label={`${formatKorean(d)} ${r?.totalReps ?? 0}회${st === 'done' ? ', 목표 달성' : ''}`}
-                aria-pressed={d === selected}
-              >
-                {st === 'done' ? (
-                  <GrapeBerry filled size={34} />
-                ) : (
-                  <span className="cal-day">{parseKey(d).getDate()}</span>
-                )}
-                {st === 'progress' && <span className="cal-reps">{r!.totalReps}</span>}
-              </button>
-            );
-          })}
         </div>
-        <div className="cal-legend">
-          <span>
-            <GrapeBerry filled size={14} /> 완료 100회 이상
-          </span>
-          <span>
-            <i className="dot" /> 진행 1~99회
-          </span>
-          <span>
-            <i className="dot dot-empty" /> 미실시
-          </span>
-        </div>
-      </section>
 
-      <Card className="day-card">
+        <div className="bunch-legend">
+          <span>
+            <DayBerry day={0} ratio={1} /> 100회 이상
+          </span>
+          <span>
+            <DayBerry day={0} ratio={0.5} /> 진행 중
+          </span>
+          <span>
+            <DayBerry day={0} ratio={0} /> 미실시
+          </span>
+        </div>
+      </Card>
+
+      <Card className="day-card" aria-live="polite">
         <div className="day-head">
           <div className="card-title">{formatKorean(selected)}</div>
-          <div className={`day-total ${dayStatus(sel) === 'done' ? 'is-done' : ''}`}>
-            {sel?.totalReps ?? 0}
+          <div className={`day-total ${selReps >= DAILY_GOAL ? 'is-done' : ''}`}>
+            {selReps}
             <small> / {DAILY_GOAL}</small>
           </div>
         </div>
-        {sessions === null ? (
+        <div className="day-status">
+          {selReps >= DAILY_GOAL ? (
+            <span className="badge badge-done">
+              <Check size={14} strokeWidth={3} /> 목표 달성
+            </span>
+          ) : isFuture ? (
+            <span className="badge">아직 오지 않은 날</span>
+          ) : selReps > 0 ? (
+            <span className="badge">목표까지 {DAILY_GOAL - selReps}회</span>
+          ) : (
+            <span className="badge">운동 기록 없음</span>
+          )}
+        </div>
+        {sessions === null || !loaded ? (
           <p className="caption">불러오는 중</p>
-        ) : sessions.length === 0 ? (
-          <p className="caption">운동 기록이 없습니다.</p>
-        ) : (
+        ) : sessions.length > 0 ? (
           <ul className="sessions">
             {sessions.map((s) => (
               <li key={s.id}>
@@ -178,8 +208,18 @@ export function RecordsScreen() {
               </li>
             ))}
           </ul>
-        )}
+        ) : null}
       </Card>
+
+      <section>
+        <SectionHeader title="누적 기록" />
+        <Card tone="pale" className="stats">
+          <Stat label={`${cursor.m + 1}월 달성일`} value={stats.monthGoalDays} unit="일" />
+          <Stat label="누적 스쿼트" value={stats.totalReps} unit="회" />
+          <Stat label="연속 달성" value={stats.currentStreak} unit="일" />
+          <Stat label="최장 연속" value={stats.longestStreak} unit="일" />
+        </Card>
+      </section>
 
       <section>
         <SectionHeader title="백업" />

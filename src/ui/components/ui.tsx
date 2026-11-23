@@ -1,4 +1,4 @@
-import type { ButtonHTMLAttributes, ReactNode } from 'react';
+import type { ButtonHTMLAttributes, HTMLAttributes, ReactNode } from 'react';
 
 /** 공통 UI 컴포넌트 — 스타일은 styles.css 의 디자인 토큰을 따른다 */
 
@@ -19,8 +19,12 @@ export function Button({
   );
 }
 
-export function Card({ className = '', tone = 'white', children }: { className?: string; tone?: 'white' | 'pale'; children: ReactNode }) {
-  return <section className={`card card-${tone} ${className}`}>{children}</section>;
+export function Card({ className = '', tone = 'white', children, ...rest }: { className?: string; tone?: 'white' | 'pale'; children: ReactNode } & HTMLAttributes<HTMLElement>) {
+  return (
+    <section className={`card card-${tone} ${className}`} {...rest}>
+      {children}
+    </section>
+  );
 }
 
 export function ProgressBar({ value, max }: { value: number; max: number }) {

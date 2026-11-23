@@ -278,3 +278,67 @@ h1, h2, p, ol { margin: 0; }
 .notice > .btn { align-self: flex-end; }
 .stat-value { font-size: 20px; letter-spacing: -0.3px; }
 @media (max-width: 380px) { .stat-value { font-size: 17px; } .stat-label { font-size: 11px; } }
+
+/* =========================================================
+   운동 탭: 한 화면 고정 레이아웃
+   헤더 · 날짜 · 카드(정보/캐릭터/버튼) · 하단 탭을 화면 높이 안에 배치하고,
+   남는 높이는 캐릭터 영역이 차지한다. 높이가 부족하면 캐릭터·여백부터 줄인다.
+   ========================================================= */
+:root { --nav-h: 60px; --berry-partial: #b8d3ee; }
+.screen-fit {
+  height: 100vh; height: 100dvh; height: var(--app-h, 100dvh);
+  gap: 10px;
+  padding-top: calc(env(safe-area-inset-top) + 2px);
+  padding-bottom: calc(env(safe-area-inset-bottom) + var(--nav-h) + 14px);
+}
+.screen-fit .app-header { height: 48px; flex-shrink: 0; }
+.screen-fit .date-title { font-size: 22px; flex-shrink: 0; }
+.fit-card { flex: 1 1 auto; min-height: 0; padding: 18px 18px 18px; gap: 10px; }
+.fit-card .today-info { flex-shrink: 0; }
+.fit-card .btn { flex-shrink: 0; }
+.stage-fit { flex: 1 1 auto; height: auto; min-height: 150px; margin: 0; }
+.stage-fit .sprite-character::after { bottom: -2px; height: 16px; }
+
+/* 높이가 아주 작은 화면: 최소 높이도 안 되면 예외적으로 스크롤 허용 */
+@media (max-height: 520px) {
+  .screen-fit { height: auto; min-height: var(--app-h, 100dvh); overflow: visible; }
+  .stage-fit { flex: none; height: 170px; }
+}
+@media (max-height: 640px) {
+  .screen-fit { gap: 6px; }
+  .screen-fit .app-header { height: 44px; }
+  .screen-fit .date-title { font-size: 20px; }
+  .fit-card { padding: 14px; gap: 8px; }
+  .fit-card .icon-tile { width: 44px; height: 44px; }
+  .fit-card .reps-now { font-size: 34px; }
+  .fit-card .btn { height: 52px; }
+}
+
+/* 하단 탭 3개 */
+.bottom-nav { grid-template-columns: repeat(3, 1fr); }
+
+/* =========================================================
+   포도알 탭
+   ========================================================= */
+.bunch-card { padding: 16px 14px 18px; display: flex; flex-direction: column; gap: 8px; }
+.bunch-head { display: grid; grid-template-columns: 44px 1fr 44px; align-items: center; }
+.bunch-title { text-align: center; }
+.bunch-count { font-size: 15px; color: var(--gray); margin-top: 2px; }
+.bunch-count b { font-size: 22px; font-weight: 700; color: var(--deep); }
+.bunch { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 0 2px; }
+.bunch-stem { width: 64px; height: 32px; margin-bottom: -6px; }
+.bunch-row { display: flex; justify-content: center; gap: 2px; }
+.bunch-berry { width: clamp(44px, 13.5vw, 58px); aspect-ratio: 1; padding: 0; border-radius: 50%; }
+.bunch-berry:focus-visible { outline-offset: -2px; }
+.day-berry { width: 100%; height: 100%; display: block; }
+.day-berry-num { font-size: 13px; font-weight: 600; fill: var(--gray); font-family: var(--font); }
+.day-berry.is-partial .day-berry-num { fill: var(--deep); }
+.day-berry.is-done .day-berry-num { fill: #fff; font-weight: 700; }
+.bunch-legend { display: flex; justify-content: center; gap: 14px; font-size: 12px; color: var(--gray); margin-top: 6px; flex-wrap: wrap; }
+.bunch-legend span { display: inline-flex; align-items: center; gap: 4px; }
+.bunch-legend .day-berry { width: 18px; height: 18px; }
+
+.day-status { margin-top: 8px; }
+.badge { display: inline-flex; align-items: center; gap: 4px; height: 26px; padding: 0 10px; border-radius: 99px; background: var(--pale); color: var(--gray); font-size: 13px; font-weight: 500; }
+.badge-done { background: var(--soft); color: var(--deep); font-weight: 600; }
+.stats { grid-template-columns: repeat(4, 1fr); }
