@@ -14,14 +14,14 @@ export function GrapeBerry({ filled, size = 40, pop = false, label }: { filled: 
       aria-label={label}
       aria-hidden={label ? undefined : true}
     >
-      <circle cx="20" cy="20" r="18.5" fill={filled ? 'var(--berry)' : 'var(--bg)'} stroke={filled ? 'var(--berry)' : 'var(--line-strong)'} strokeWidth="1" />
+      <circle cx="20" cy="20" r="18.5" fill={filled ? 'var(--berry)' : 'var(--berry-empty)'} />
     </svg>
   );
 }
 
 /**
  * 날짜 포도알. 미실시 = 빈 알, 1~99회 = 아래에서부터 진행률만큼 차오름, 100회 이상 = 완성된 알.
- * 선택한 날은 바깥 검은 링, 오늘은 날짜 숫자 아래 점으로 구분한다.
+ * 선택한 날은 바깥 링, 오늘은 날짜 숫자 아래 점으로 구분한다.
  */
 export function DayBerry({ day, ratio, today, selected, pop }: { day: number; ratio: number; today?: boolean; selected?: boolean; pop?: boolean }) {
   const uid = useId().replace(/:/g, '');
@@ -30,14 +30,14 @@ export function DayBerry({ day, ratio, today, selected, pop }: { day: number; ra
   const h = 37 * Math.min(1, Math.max(0, ratio));
   return (
     <svg className={`day-berry ${done ? 'is-done' : partial ? 'is-partial' : 'is-empty'} ${pop ? 'pop-in' : ''}`} viewBox="0 0 44 44" aria-hidden="true">
-      {selected && <circle cx="22" cy="22" r="21.2" fill="none" stroke="var(--ink)" strokeWidth="1.6" />}
-      <circle cx="22" cy="22" r="18.5" fill={done ? 'var(--berry)' : 'var(--bg)'} stroke={done ? 'var(--berry)' : 'var(--line-strong)'} strokeWidth="1" />
+      {selected && <circle cx="22" cy="22" r="21" fill="none" stroke="var(--berry-select)" strokeWidth="2" />}
+      <circle cx="22" cy="22" r="18.5" fill={done ? 'var(--berry)' : 'var(--berry-empty)'} />
       {partial && (
         <>
           <clipPath id={`c${uid}`}>
             <rect x="0" y={40.5 - h} width="44" height={h} />
           </clipPath>
-          <circle cx="22" cy="22" r="18" fill="var(--berry-partial)" clipPath={`url(#c${uid})`} />
+          <circle cx="22" cy="22" r="18.5" fill="var(--berry-partial)" clipPath={`url(#c${uid})`} />
         </>
       )}
       {day > 0 && (

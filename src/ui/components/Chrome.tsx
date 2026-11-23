@@ -47,7 +47,7 @@ export function SwitchFab({ route, onNavigate }: { route: Route; onNavigate: (r:
   const label = to === 'grapes' ? '포도알 기록 보기' : '운동 화면으로';
   return (
     <button className="switch-fab" aria-label={label} title={label} onClick={() => onNavigate(to)}>
-      {to === 'grapes' ? <Grape size={22} strokeWidth={1.6} /> : <Dumbbell size={22} strokeWidth={1.6} />}
+      {to === 'grapes' ? <Grape size={24} strokeWidth={2} /> : <Dumbbell size={22} strokeWidth={2} />}
     </button>
   );
 }

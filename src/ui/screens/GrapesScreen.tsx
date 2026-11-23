@@ -70,7 +70,7 @@ export function GrapesScreen() {
         title="포도알"
         right={
           <button className="icon-btn" aria-label="설정" onClick={() => setSettingsOpen(true)}>
-            <Settings size={22} strokeWidth={1.6} />
+            <Settings size={22} strokeWidth={2} />
           </button>
         }
       />
@@ -79,13 +79,13 @@ export function GrapesScreen() {
       <section className="board" aria-label="월간 포도알">
         <div className="board-nav">
           <button className="icon-btn" onClick={() => move(-1)} aria-label="이전 달">
-            <ChevronLeft size={20} strokeWidth={1.6} />
+            <ChevronLeft size={20} strokeWidth={2} />
           </button>
           <h2 className="board-month">
             {cursor.y}.{String(cursor.m + 1).padStart(2, '0')}
           </h2>
           <button className="icon-btn" onClick={() => move(1)} aria-label="다음 달">
-            <ChevronRight size={20} strokeWidth={1.6} />
+            <ChevronRight size={20} strokeWidth={2} />
           </button>
         </div>
         <p className="board-count">
@@ -94,8 +94,9 @@ export function GrapesScreen() {
         </p>
 
         <div className="bunch">
-          <svg className="bunch-top" viewBox="0 0 40 24" aria-hidden="true">
-            <path d="M20 24 V9 C20 5 22 2.5 26 1.5" stroke="var(--ink)" strokeWidth="1.4" fill="none" strokeLinecap="round" />
+          <svg className="bunch-top" viewBox="0 0 48 26" aria-hidden="true">
+            <path d="M22 26 V12 C22 7 23.5 4 27 2" stroke="var(--stem)" strokeWidth="2.4" fill="none" strokeLinecap="round" />
+            <path d="M24 11 C28 3 39 2 44 7 C39 13 29 15 24 11Z" fill="var(--leaf)" />
           </svg>
           {rows.map((row, i) => (
             <div className="bunch-row" key={i}>
@@ -131,7 +132,7 @@ export function GrapesScreen() {
           </span>
           <button className="kstats-more" aria-expanded={moreStats} aria-controls="more-stats" onClick={() => setMoreStats((v) => !v)}>
             {moreStats ? '접기' : '더보기'}
-            <ChevronDown size={14} strokeWidth={1.6} className={moreStats ? 'rot' : ''} />
+            <ChevronDown size={14} strokeWidth={2} className={moreStats ? 'rot' : ''} />
           </button>
         </div>
         {moreStats && (
@@ -168,7 +169,7 @@ export function GrapesScreen() {
             )}
           </span>
         </span>
-        <ChevronRight size={18} strokeWidth={1.6} />
+        <ChevronRight size={18} strokeWidth={2} />
       </button>
 
       <DaySheet open={dayOpen} onClose={closeDay} date={selected} total={selReps} records={records} />
