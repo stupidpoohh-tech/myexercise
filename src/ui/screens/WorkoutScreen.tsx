@@ -10,6 +10,7 @@ import { GrapeBerry, SquatIcon } from '../components/graphics';
 import { SENSOR_LABEL, SensorHelp } from '../components/SensorHelp';
 import { Button, Card, Notice, ProgressBar } from '../components/ui';
 import { useDailyRecords, useToday } from '../hooks/useRecords';
+import { useGrowth } from '../hooks/useGrowth';
 import { useWorkout } from '../hooks/useWorkout';
 
 const REJECT_TEXT: Record<RejectReason, string> = {
@@ -82,6 +83,25 @@ function ActiveView({ onExit }: { onExit: () => void }) {
   const [, force] = useState(0);
   const [grapeToast, setGrapeToast] = useState(false);
   const prevToday = useRef(w.todayReps);
+  const growth = useGrowth();
+  const startStage = useRef<number | null>(null);
+  const [grew, setGrew] = useState(false);
+  const [growToast, setGrowToast] = useState(false);
+
+  // 이번 운동 중 성장 단계가 올라가면 알림 (기록이 저장되면 단계가 다시 계산된다)
+  useEffect(() => {
+    if (!growth.loaded) return;
+    if (startStage.current === null) {
+      startStage.current = growth.stage;
+      return;
+    }
+    if (growth.stage > startStage.current && !grew) {
+      setGrew(true);
+      setGrowToast(true);
+      const t = setTimeout(() => setGrowToast(false), 2600);
+      return () => clearTimeout(t);
+    }
+  }, [growth.loaded, growth.stage, grew]);
 
   useEffect(() => {
     const id = setInterval(() => {
@@ -155,7 +175,9 @@ function ActiveView({ onExit }: { onExit: () => void }) {
             {w.phase === 'starting' && <span className="msg">준비 중</span>}
             {paused && <span className="msg">일시정지</span>}
             {feedback && <span className="msg msg-warn">{feedback}</span>}
-            {grapeToast && (
+            {growToast ? (
+              <span className="msg msg-grape">캐릭터가 {growth.stage}단계로 성장했어요</span>
+            ) : grapeToast && (
               <span className="msg msg-grape">
                 <GrapeBerry filled size={18} pop /> 오늘의 포도알을 모았어요
               </span>
@@ -231,6 +253,11 @@ function ActiveView({ onExit }: { onExit: () => void }) {
               <div className="result-grape">
                 <GrapeBerry filled size={44} pop />
                 <span>오늘의 포도알을 모았어요</span>
+              </div>
+            )}
+            {grew && (
+              <div className="result-grow">
+                캐릭터가 <b>{growth.stage}단계</b>로 성장했어요
               </div>
             )}
             {w.save.dirty ? (
