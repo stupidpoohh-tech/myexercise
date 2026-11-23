@@ -244,3 +244,26 @@ p { margin: 4px 0; }
 /* 안내 배너가 길면 잘리지 않고 스크롤되도록 */
 .workout { height: auto; min-height: 100dvh; overflow: visible; }
 .workout > .wo-stage { min-height: 170px; }
+
+/* ---------- 캐릭터 스프라이트 ---------- */
+.sprite-character { position: relative; isolation: isolate; height: 100%; width: 100%; display: flex; align-items: flex-end; justify-content: center; }
+.sprite-character img { height: 100%; width: auto; max-width: 100%; object-fit: contain; object-position: bottom; user-select: none; -webkit-user-drag: none; }
+.sprite-character::after {
+  content: ''; position: absolute; bottom: 2px; left: 50%; width: 46%; height: 14px; transform: translateX(-50%);
+  background: radial-gradient(closest-side, rgba(0, 0, 0, 0.45), transparent); z-index: -1;
+}
+.sprite-character[data-tracking='false'] img { filter: none; }
+.sprite-character.flash-ok img { animation: char-ok 0.45s ease-out; }
+.sprite-character.flash-no img { animation: char-no 0.35s ease-out; }
+@keyframes char-ok { 0% { filter: drop-shadow(0 0 0 rgba(0, 220, 132, 0)); } 30% { filter: drop-shadow(0 0 14px rgba(0, 220, 132, 0.9)); } 100% { filter: drop-shadow(0 0 0 rgba(0, 220, 132, 0)); } }
+@keyframes char-no { 0%, 100% { transform: translateX(0); } 30% { transform: translateX(-5px); } 60% { transform: translateX(5px); } }
+.is-paused .sprite-character img { opacity: 0.6; }
+
+.char-picker { position: absolute; right: 10px; top: 10px; display: flex; flex-direction: column; gap: 6px; z-index: 2; }
+.char-picker button { width: 44px; height: 44px; border-radius: 12px; padding: 2px; background: rgba(15, 32, 48, 0.85); border: 2px solid var(--line); overflow: hidden; }
+.char-picker button.is-on { border-color: var(--cyan); }
+.char-picker img { width: 100%; height: 160%; object-fit: cover; object-position: top; }
+.workout > .calib { align-self: stretch; max-width: none; display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 4px 10px; text-align: left; }
+.workout > .calib .calib-title { font-size: 17px; }
+.workout > .calib p { grid-column: 1; margin: 0; font-size: 13px; }
+.workout > .calib button { grid-column: 2; grid-row: 1 / span 2; }

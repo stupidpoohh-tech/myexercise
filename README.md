@@ -43,9 +43,24 @@ src/ui/                         화면(홈·운동·기록), 개발 패널
 
 판정은 `SquatDetector` 한 곳에서만 하며, 카운트와 애니메이션은 같은 `MotionFrame` / `rep` 이벤트를 구독합니다.
 
-## 캐릭터 에셋 연결
+## 캐릭터
 
-`src/character/index.ts` 의 팩토리만 바꿉니다. 렌더러는 `CharacterRenderer` 를 구현합니다.
+제공된 캐릭터 3종이 적용되어 있으며, 홈 화면 캐릭터 영역 오른쪽 위에서 선택합니다(선택값은 브라우저에 저장).
+
+- 원본: `assets/character-src/` (`<번호>.png` 대기 자세, `<번호>excercise.png` 4열×2행 스쿼트 시트 — 1행 하강, 2행 상승)
+- 변환: `python3 scripts/build-character.py` (Pillow, NumPy, SciPy 필요) → `public/character/<번호>/squat_0~7.webp, idle.webp`
+  - 시트 칸 분리, 흰 배경 제거(3번 시트), 발 위치 기준 정렬, 공통 크기 캔버스 배치
+- 렌더러: `src/character/SquatSpriteRenderer.ts`
+  - 하강 중 1행 프레임, 상승 중 2행 프레임을 depth(0~1)에 따라 선택, 최저 자세는 1행 마지막 프레임
+  - 서 있는 상태가 1.2초 이상 유지되면 대기 자세 이미지로 전환 (연속 반복 중 깜빡임 방지)
+  - 카운트 확정 시 초록 빛, 제외된 동작은 짧은 흔들림 효과
+- 원본을 바꾸거나 캐릭터를 추가할 때는 원본 교체 → 스크립트 실행 → `src/character/index.ts` 의 `CHARACTER_IDS` 갱신만 하면 됩니다.
+
+`assets/character-src/grape*.png`(포도 캐릭터·포도알 스티커판)는 저장소에 보관만 하고 아직 화면에 적용하지 않았습니다.
+
+## 캐릭터 에셋 연결 (인터페이스)
+
+`src/character/index.ts` 의 팩토리만 바꿉니다 (임시 도형 `PlaceholderRenderer` 는 개발용으로 남겨 두었습니다). 렌더러는 `CharacterRenderer` 를 구현합니다.
 
 ```ts
 interface CharacterRenderer {

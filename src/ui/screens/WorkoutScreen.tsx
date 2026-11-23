@@ -68,21 +68,22 @@ export function WorkoutScreen({ onExit }: { onExit: () => void }) {
         <div className="wo-sub">이번 운동 {w.sessionReps}회</div>
       </section>
 
+      {w.phase === 'calibrating' && w.calibration && (
+        <div className="calib">
+          <div className="calib-title">
+            움직임 보정 {w.calibration.done}/{w.calibration.target}
+          </div>
+          <p>휴대폰을 양손으로 가슴 앞에 들고 평소처럼 스쿼트해 주세요.</p>
+          <button className="btn-ghost btn-small" onClick={() => workout.skipCalibration()}>
+            건너뛰기
+          </button>
+        </div>
+      )}
+
       <section className="wo-stage">
         <CharacterStage />
         <div className="wo-overlay">
           {w.phase === 'starting' && <div className="chip">준비 중…</div>}
-          {w.phase === 'calibrating' && w.calibration && (
-            <div className="calib">
-              <div className="calib-title">
-                움직임 보정 {w.calibration.done}/{w.calibration.target}
-              </div>
-              <p>휴대폰을 양손으로 가슴 앞에 들고 평소처럼 스쿼트해 주세요.</p>
-              <button className="btn-ghost btn-small" onClick={() => workout.skipCalibration()}>
-                건너뛰기
-              </button>
-            </div>
-          )}
           {paused && <div className="chip chip-strong">일시정지</div>}
           {feedback && <div className="chip chip-warn">{feedback}</div>}
         </div>

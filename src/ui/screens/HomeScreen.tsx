@@ -1,6 +1,7 @@
 import { dayStatus, lastNDays } from '../../core/storage/DailyRecordService';
 import { DAILY_GOAL } from '../../core/storage/types';
 import { formatKorean, parseKey, weekdayLabel } from '../../core/util/date';
+import { CharacterPicker } from '../components/CharacterPicker';
 import { CharacterStage } from '../components/CharacterStage';
 import { GoalBar, StickerMark } from '../components/common';
 import { useDailyRecords, useToday } from '../hooks/useRecords';
@@ -23,6 +24,7 @@ export function HomeScreen({ onStart, onRecords }: { onStart: () => void; onReco
 
       <section className="home-stage">
         <CharacterStage />
+        <CharacterPicker />
       </section>
 
       <section className="home-count" aria-live="polite">
