@@ -1,16 +1,18 @@
 import { useEffect, useState } from 'react';
 import { debugEnabled, storage, workout } from './services';
+import { BottomNav, type Route } from './ui/components/Chrome';
 import { DebugPanel } from './ui/components/DebugPanel';
 import { useWorkout } from './ui/hooks/useWorkout';
+import { CharacterScreen } from './ui/screens/CharacterScreen';
 import { HomeScreen } from './ui/screens/HomeScreen';
 import { RecordsScreen } from './ui/screens/RecordsScreen';
 import { WorkoutScreen } from './ui/screens/WorkoutScreen';
 
-type Route = 'home' | 'workout' | 'records';
+const ROUTES: Route[] = ['home', 'workout', 'records', 'character'];
 
 function readRoute(): Route {
-  const h = location.hash.replace(/^#\/?/, '').split('?')[0];
-  return h === 'records' ? 'records' : h === 'workout' ? 'workout' : 'home';
+  const h = location.hash.replace(/^#\/?/, '').split('?')[0] as Route;
+  return ROUTES.includes(h) ? h : 'home';
 }
 
 export default function App() {
@@ -26,8 +28,12 @@ export default function App() {
     return () => window.removeEventListener('hashchange', on);
   }, []);
 
-  // 운동 중이면 항상 운동 화면
-  const current: Route = active ? 'workout' : route === 'workout' ? 'home' : route;
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [route]);
+
+  // 운동 중에는 항상 운동 화면 (하단 탭 숨김 — 실수로 이탈하지 않도록)
+  const current: Route = active ? 'workout' : route;
 
   const go = (r: Route) => {
     location.hash = r === 'home' ? '/' : `/${r}`;
@@ -41,10 +47,12 @@ export default function App() {
   };
 
   return (
-    <div className="app">
-      {current === 'home' && <HomeScreen onStart={start} onRecords={() => go('records')} />}
-      {current === 'workout' && <WorkoutScreen onExit={() => go('home')} />}
-      {current === 'records' && <RecordsScreen onBack={() => go('home')} />}
+    <div className={`app ${active ? 'is-working' : ''}`}>
+      {current === 'home' && <HomeScreen onStart={start} onNavigate={go} />}
+      {current === 'workout' && <WorkoutScreen onStart={start} onExit={() => go('home')} />}
+      {current === 'records' && <RecordsScreen />}
+      {current === 'character' && <CharacterScreen />}
+      {!active && <BottomNav route={current} onNavigate={go} />}
       {debugEnabled && <DebugPanel />}
     </div>
   );

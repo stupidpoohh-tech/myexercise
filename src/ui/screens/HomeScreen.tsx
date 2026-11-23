@@ -1,55 +1,89 @@
-import { dayStatus, lastNDays } from '../../core/storage/DailyRecordService';
+import { ChevronRight, Play } from 'lucide-react';
+import { computeStats, dayStatus, lastNDays } from '../../core/storage/DailyRecordService';
 import { DAILY_GOAL } from '../../core/storage/types';
 import { formatKorean, parseKey, weekdayLabel } from '../../core/util/date';
-import { CharacterPicker } from '../components/CharacterPicker';
 import { CharacterStage } from '../components/CharacterStage';
-import { GoalBar, StickerMark } from '../components/common';
+import { AppHeader, type Route } from '../components/Chrome';
+import { GrapeBerry, SquatIcon } from '../components/graphics';
+import { GrapeBoard } from '../components/GrapeBoard';
+import { Button, Card, ProgressBar, SectionHeader } from '../components/ui';
 import { useDailyRecords, useToday } from '../hooks/useRecords';
 
-export function HomeScreen({ onStart, onRecords }: { onStart: () => void; onRecords: () => void }) {
+export function HomeScreen({ onStart, onNavigate }: { onStart: () => void; onNavigate: (r: Route) => void }) {
   const today = useToday();
   const { records, error } = useDailyRecords();
   const map = new Map(records.map((r) => [r.date, r]));
   const todayReps = map.get(today)?.totalReps ?? 0;
-  const done = todayReps >= DAILY_GOAL;
+  const d = parseKey(today);
+  const daysInMonth = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+  const monthKey = today.slice(0, 7);
+  const stats = computeStats(records, today, monthKey);
 
   return (
-    <main className="screen home">
-      <header className="home-head">
-        <div className="home-date">{formatKorean(today)}</div>
-        <button className="link-btn" onClick={onRecords}>
-          기록 <span aria-hidden>›</span>
+    <main className="screen">
+      <AppHeader onNavigate={onNavigate} />
+
+      <div className="date-row">
+        <h1 className="date-title">{formatKorean(today)}</h1>
+        <button className="link" onClick={() => onNavigate('records')}>
+          기록 <ChevronRight size={18} strokeWidth={2} />
         </button>
-      </header>
+      </div>
 
-      <section className="home-stage">
-        <CharacterStage />
-        <CharacterPicker />
-      </section>
-
-      <section className="home-count" aria-live="polite">
-        <div className="count-line">
-          <span className={`count-big ${done ? 'is-done' : ''}`}>{todayReps}</span>
-          <span className="count-goal">/ {DAILY_GOAL}</span>
+      <Card className="today-card">
+        <div className="today-info">
+          <div className="today-label">
+            <span className="icon-tile">
+              <SquatIcon size={26} />
+            </span>
+            <div>
+              <div className="caption">오늘의 운동</div>
+              <div className="card-title">스쿼트 {DAILY_GOAL}개</div>
+            </div>
+          </div>
+          <div className="today-progress">
+            <div className="reps">
+              <span className="reps-now">{todayReps}</span>
+              <span className="reps-goal"> / {DAILY_GOAL}</span>
+            </div>
+            <ProgressBar value={todayReps} max={DAILY_GOAL} />
+          </div>
         </div>
-        <GoalBar value={todayReps} />
-        <div className="count-caption">{done ? '오늘 목표 달성' : `목표까지 ${DAILY_GOAL - todayReps}회`}</div>
-      </section>
 
-      <button className="btn-primary btn-start" onClick={onStart}>
-        운동 시작
-      </button>
+        <div className="stage">
+          <CharacterStage />
+        </div>
+
+        <Button icon={<Play size={20} fill="currentColor" strokeWidth={0} />} onClick={onStart}>
+          {todayReps >= DAILY_GOAL ? '운동 더 하기' : '운동 시작'}
+        </Button>
+      </Card>
+
+      <section>
+        <SectionHeader
+          title="이번 달 포도알"
+          right={
+            <button className="link count-link" onClick={() => onNavigate('records')} aria-label="이번 달 기록 보기">
+              <b>{stats.monthGoalDays}</b>
+              <span> / {daysInMonth}</span>
+              <ChevronRight size={18} strokeWidth={2} />
+            </button>
+          }
+        />
+        <Card tone="pale" className="board-card">
+          <GrapeBoard filled={stats.monthGoalDays} total={daysInMonth} monthKey={monthKey} />
+        </Card>
+      </section>
 
       <section className="week" aria-label="최근 7일">
-        {lastNDays(7, today).map((d) => {
-          const r = map.get(d);
-          const st = dayStatus(r);
+        {lastNDays(7, today).map((k) => {
+          const st = dayStatus(map.get(k));
           return (
-            <div key={d} className={`week-day st-${st} ${d === today ? 'is-today' : ''}`}>
-              <span className="week-label">{weekdayLabel(d)}</span>
-              <span className="week-dot">{st === 'done' ? <StickerMark size="sm" /> : parseKey(d).getDate()}</span>
-              <span className="week-reps">{r?.totalReps ? r.totalReps : ''}</span>
-            </div>
+            <button key={k} className={`week-day ${k === today ? 'is-today' : ''}`} onClick={() => onNavigate('records')}>
+              <span className="week-label">{weekdayLabel(k)}</span>
+              <span className={`week-num st-${st}`}>{parseKey(k).getDate()}</span>
+              <span className="week-mark">{st === 'done' ? <GrapeBerry filled size={12} label="목표 달성" /> : st === 'progress' ? <i className="dot" /> : null}</span>
+            </button>
           );
         })}
       </section>

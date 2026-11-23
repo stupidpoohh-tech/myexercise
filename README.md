@@ -1,4 +1,4 @@
-# 스쿼트 100 — 스쿼트 트래킹 모바일 웹 (MVP)
+# 운동 포도알 — 스쿼트 트래킹 모바일 웹 (MVP)
 
 스마트폰을 양손으로 가슴 앞에 들고 스쿼트하면 센서로 횟수를 추정해 자동 카운트하고, 같은 판정 결과로 캐릭터(현재는 임시 도형)를 움직이며, 날짜별 기록을 IndexedDB에 저장합니다.
 
@@ -43,9 +43,19 @@ src/ui/                         화면(홈·운동·기록), 개발 패널
 
 판정은 `SquatDetector` 한 곳에서만 하며, 카운트와 애니메이션은 같은 `MotionFrame` / `rep` 이벤트를 구독합니다.
 
+## 디자인 시스템
+
+Clean Minimal × Playful Character × Soft Blue. 흰 배경 + 블루 포인트, 캐릭터와 포도알 스티커가 시각적 중심입니다.
+
+- 토큰: `src/styles.css` 의 `:root` (색상·반경·여백·글꼴). 색 변경은 이곳에서만 합니다.
+- 공통 컴포넌트: `src/ui/components/ui.tsx` (Button, Card, ProgressBar, SectionHeader, Notice), `Chrome.tsx` (헤더·메뉴·하단 탭), `graphics.tsx` (포도알·로고·스쿼트 아이콘), `GrapeBoard.tsx`
+- 글꼴: Pretendard (jsDelivr CDN), 아이콘: Lucide (stroke 1.75~2)
+- 화면: 홈 / 운동(준비·진행·결과) / 기록(달력·통계·백업) / 내 캐릭터. 운동 중에는 하단 탭을 숨겨 실수로 이탈하지 않게 합니다.
+- 포도알: 이번 달 목표 달성일 수만큼 앞에서부터 채우며, 달력에서는 달성한 날짜 칸에 포도알이 붙습니다. 오늘 100회를 넘기는 순간과 운동 결과 화면에서 포도알 획득을 알립니다.
+
 ## 캐릭터
 
-제공된 캐릭터 3종이 적용되어 있으며, 홈 화면 캐릭터 영역 오른쪽 위에서 선택합니다(선택값은 브라우저에 저장).
+제공된 캐릭터 3종이 적용되어 있으며, '내 캐릭터' 탭에서 선택합니다(선택값은 브라우저에 저장).
 
 - 원본: `assets/character-src/` (`<번호>.png` 대기 자세, `<번호>excercise.png` 4열×2행 스쿼트 시트 — 1행 하강, 2행 상승)
 - 변환: `python3 scripts/build-character.py` (Pillow, NumPy, SciPy 필요) → `public/character/<번호>/squat_0~7.webp, idle.webp`
@@ -53,10 +63,10 @@ src/ui/                         화면(홈·운동·기록), 개발 패널
 - 렌더러: `src/character/SquatSpriteRenderer.ts`
   - 하강 중 1행 프레임, 상승 중 2행 프레임을 depth(0~1)에 따라 선택, 최저 자세는 1행 마지막 프레임
   - 서 있는 상태가 1.2초 이상 유지되면 대기 자세 이미지로 전환 (연속 반복 중 깜빡임 방지)
-  - 카운트 확정 시 초록 빛, 제외된 동작은 짧은 흔들림 효과
+  - 카운트 확정 시 짧게 위로 튀는 효과
 - 원본을 바꾸거나 캐릭터를 추가할 때는 원본 교체 → 스크립트 실행 → `src/character/index.ts` 의 `CHARACTER_IDS` 갱신만 하면 됩니다.
 
-`assets/character-src/grape*.png`(포도 캐릭터·포도알 스티커판)는 저장소에 보관만 하고 아직 화면에 적용하지 않았습니다.
+`assets/character-src/grape*.png` 는 참고 원본으로 보관 중이며, 화면의 포도알은 디자인 지침에 따라 라이트 블루 SVG 로 그립니다.
 
 ## 캐릭터 에셋 연결 (인터페이스)
 

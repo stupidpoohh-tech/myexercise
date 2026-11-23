@@ -1,31 +1,86 @@
-import { useEffect, useState } from 'react';
-import type { RejectReason } from '../../core/types';
+import { Minus, Pause, Play, Plus } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
 import { DAILY_GOAL } from '../../core/storage/types';
+import type { RejectReason } from '../../core/types';
 import { workout } from '../../services';
 import { CharacterStage } from '../components/CharacterStage';
-import { Banner, GoalBar } from '../components/common';
+import { GrapeBerry, SquatIcon } from '../components/graphics';
 import { SENSOR_LABEL, SensorHelp } from '../components/SensorHelp';
+import { Button, Card, Notice, ProgressBar } from '../components/ui';
+import { useDailyRecords, useToday } from '../hooks/useRecords';
 import { useWorkout } from '../hooks/useWorkout';
 
 const REJECT_TEXT: Record<RejectReason, string> = {
-  'too-fast': '너무 빨라요',
-  'too-slow': '너무 느려요',
-  'too-shallow': '조금 더 깊게',
+  'too-fast': '조금 천천히 해 주세요',
+  'too-slow': '동작이 너무 느려요',
+  'too-shallow': '조금 더 앉아 주세요',
   asymmetric: '끝까지 일어나 주세요',
-  shake: '흔들림 감지',
+  shake: '흔들림이 감지됐어요',
   rotation: '휴대폰 방향을 유지해 주세요',
-  'bottom-timeout': '동작 취소됨',
-  'descent-timeout': '동작 취소됨',
-  'ascent-timeout': '동작 취소됨',
-  'sensor-gap': '센서 신호 끊김',
-  'too-erratic': '불규칙한 움직임',
+  'bottom-timeout': '동작이 취소됐어요',
+  'descent-timeout': '동작이 취소됐어요',
+  'ascent-timeout': '동작이 취소됐어요',
+  'sensor-gap': '센서 신호가 끊겼어요',
+  'too-erratic': '움직임이 불규칙해요',
 };
 
-export function WorkoutScreen({ onExit }: { onExit: () => void }) {
+/** 운동 탭: 운동 전에는 준비 화면, 운동 중에는 카운트 화면 */
+export function WorkoutScreen({ onStart, onExit }: { onStart: () => void; onExit: () => void }) {
+  const w = useWorkout();
+  return w.phase === 'idle' ? <ReadyView onStart={onStart} /> : <ActiveView onExit={onExit} />;
+}
+
+function ReadyView({ onStart }: { onStart: () => void }) {
+  const today = useToday();
+  const { records } = useDailyRecords();
+  const reps = records.find((r) => r.date === today)?.totalReps ?? 0;
+  return (
+    <main className="screen">
+      <header className="page-header">
+        <h1>운동</h1>
+      </header>
+      <Card className="today-card">
+        <div className="wo-count">
+          <div className="caption">오늘</div>
+          <div className="reps">
+            <span className="reps-now">{reps}</span>
+            <span className="reps-goal"> / {DAILY_GOAL}</span>
+          </div>
+          <ProgressBar value={reps} max={DAILY_GOAL} />
+        </div>
+        <div className="stage">
+          <CharacterStage />
+        </div>
+        <Button icon={<Play size={20} fill="currentColor" strokeWidth={0} />} onClick={onStart}>
+          운동 시작
+        </Button>
+      </Card>
+      <Card tone="pale" className="howto">
+        <div className="howto-row">
+          <span className="icon-tile">
+            <SquatIcon />
+          </span>
+          <div>
+            <div className="card-title">이렇게 운동해요</div>
+            <ol>
+              <li>휴대폰을 양손으로 가슴 앞에 듭니다.</li>
+              <li>처음 3회는 움직임을 맞추는 보정 단계입니다.</li>
+              <li>이후 스쿼트하면 횟수가 자동으로 올라갑니다.</li>
+            </ol>
+            <p className="caption">인식이 틀리면 −1 / +1 로 바로 고칠 수 있습니다.</p>
+          </div>
+        </div>
+      </Card>
+    </main>
+  );
+}
+
+function ActiveView({ onExit }: { onExit: () => void }) {
   const w = useWorkout();
   const [, force] = useState(0);
+  const [grapeToast, setGrapeToast] = useState(false);
+  const prevToday = useRef(w.todayReps);
 
-  // 자정 경계·수신 속도 표시 갱신
   useEffect(() => {
     const id = setInterval(() => {
       workout.tick();
@@ -35,20 +90,31 @@ export function WorkoutScreen({ onExit }: { onExit: () => void }) {
     return () => clearInterval(id);
   }, []);
 
+  // 오늘 100회를 넘는 순간 포도알 획득 알림
+  useEffect(() => {
+    if (prevToday.current < DAILY_GOAL && w.todayReps >= DAILY_GOAL) {
+      setGrapeToast(true);
+      const t = setTimeout(() => setGrapeToast(false), 2400);
+      prevToday.current = w.todayReps;
+      return () => clearTimeout(t);
+    }
+    prevToday.current = w.todayReps;
+  }, [w.todayReps]);
+
   const paused = w.phase === 'paused';
   const ended = w.phase === 'ended';
-  const sensorUsable = w.mode === 'auto' && (w.sensorStatus === 'active' || w.sensorStatus === 'waiting');
+  const done = w.todayReps >= DAILY_GOAL;
   const feedback =
     w.lastRejected && w.lastRejected.significant && Date.now() - w.lastRejected.at < 1600 && !paused
       ? REJECT_TEXT[w.lastRejected.reason]
       : null;
-  const repFlash = Date.now() - w.lastRepAt < 400;
+  const repPulse = Date.now() - w.lastRepAt < 400;
+  const sensorOk = w.mode === 'auto' && w.sensorStatus === 'active';
 
   const end = async () => {
     if (!window.confirm('운동을 종료할까요?')) return;
     await workout.end();
   };
-
   const close = () => {
     workout.reset();
     if (!workout.snapshot.save.dirty) onExit();
@@ -56,100 +122,124 @@ export function WorkoutScreen({ onExit }: { onExit: () => void }) {
 
   return (
     <main className={`screen workout ${paused ? 'is-paused' : ''}`}>
-      <section className="wo-top" aria-live="polite">
-        <div className="wo-label">오늘</div>
-        <div className="count-line">
-          <span key={w.todayReps} className={`count-huge ${w.todayReps >= DAILY_GOAL ? 'is-done' : ''} ${repFlash ? 'pop' : ''}`}>
-            {w.todayReps}
-          </span>
-          <span className="count-goal">/ {DAILY_GOAL}</span>
+      <header className="wo-header">
+        <div className="wo-title">
+          <SquatIcon size={22} />
+          스쿼트
         </div>
-        <GoalBar value={w.todayReps} />
-        <div className="wo-sub">이번 운동 {w.sessionReps}회</div>
-      </section>
+        <div className={`status-pill ${sensorOk ? 'ok' : w.mode === 'manual' ? 'manual' : 'bad'}`}>
+          <i className="dot" />
+          {w.mode === 'manual' ? '수동 기록' : SENSOR_LABEL[w.sensorStatus]}
+        </div>
+      </header>
+
+      <Card className="today-card wo-card">
+        <div className="wo-count" aria-live="polite">
+          <div className="caption">오늘</div>
+          <div className="reps">
+            <span key={w.todayReps} className={`reps-now ${repPulse ? 'bump' : ''}`}>
+              {w.todayReps}
+            </span>
+            <span className="reps-goal"> / {DAILY_GOAL}</span>
+          </div>
+          <ProgressBar value={w.todayReps} max={DAILY_GOAL} />
+          <div className="caption">
+            이번 운동 {w.sessionReps}회{done ? ' · 오늘 목표 달성' : ''}
+          </div>
+        </div>
+        <div className="stage">
+          <CharacterStage />
+          <div className="stage-msg" aria-live="polite">
+            {w.phase === 'starting' && <span className="msg">준비 중</span>}
+            {paused && <span className="msg">일시정지</span>}
+            {feedback && <span className="msg msg-warn">{feedback}</span>}
+            {grapeToast && (
+              <span className="msg msg-grape">
+                <GrapeBerry filled size={18} pop /> 오늘의 포도알을 모았어요
+              </span>
+            )}
+          </div>
+        </div>
+      </Card>
 
       {w.phase === 'calibrating' && w.calibration && (
-        <div className="calib">
-          <div className="calib-title">
-            움직임 보정 {w.calibration.done}/{w.calibration.target}
-          </div>
+        <Notice
+          title={`움직임 보정 ${w.calibration.done} / ${w.calibration.target}`}
+          action={
+            <Button variant="secondary" className="btn-sm" onClick={() => workout.skipCalibration()}>
+              건너뛰기
+            </Button>
+          }
+        >
           <p>휴대폰을 양손으로 가슴 앞에 들고 평소처럼 스쿼트해 주세요.</p>
-          <button className="btn-ghost btn-small" onClick={() => workout.skipCalibration()}>
-            건너뛰기
-          </button>
-        </div>
+        </Notice>
+      )}
+      {w.mode === 'auto' && <SensorHelp status={w.sensorStatus} onRetry={() => void workout.retrySensor()} />}
+      {w.save.status === 'error' && (
+        <Notice
+          tone="error"
+          title="기록 저장에 실패했습니다"
+          action={
+            <Button variant="secondary" className="btn-sm" onClick={() => void workout.retrySave()}>
+              다시 저장
+            </Button>
+          }
+        >
+          <p>{w.save.error} · 횟수는 화면에 유지되고 있습니다.</p>
+        </Notice>
       )}
 
-      <section className="wo-stage">
-        <CharacterStage />
-        <div className="wo-overlay">
-          {w.phase === 'starting' && <div className="chip">준비 중…</div>}
-          {paused && <div className="chip chip-strong">일시정지</div>}
-          {feedback && <div className="chip chip-warn">{feedback}</div>}
-        </div>
-      </section>
-
-      <section className="wo-banners">
-        {w.mode === 'auto' && <SensorHelp status={w.sensorStatus} onRetry={() => void workout.retrySensor()} />}
-        {w.save.status === 'error' && (
-          <Banner tone="error" action={<button className="btn-small" onClick={() => void workout.retrySave()}>다시 저장</button>}>
-            <strong>기록 저장에 실패했습니다.</strong>
-            <p>{w.save.error} — 횟수는 화면에 유지되고 있습니다.</p>
-          </Banner>
+      <div className="wo-controls">
+        <Button variant="secondary" className="btn-square" aria-label="1회 빼기" onClick={() => workout.adjust(-1)} disabled={ended} icon={<Minus size={22} />}>
+          1
+        </Button>
+        {paused ? (
+          <Button onClick={() => workout.resume()} icon={<Play size={18} fill="currentColor" strokeWidth={0} />}>
+            재개
+          </Button>
+        ) : (
+          <Button variant="secondary" onClick={() => workout.pause()} disabled={ended || w.phase === 'starting'} icon={<Pause size={18} />}>
+            일시정지
+          </Button>
         )}
-      </section>
-
-      <section className="wo-controls">
-        <div className={`sensor-pill ${sensorUsable && w.sensorStatus === 'active' ? 'ok' : w.mode === 'manual' ? 'manual' : 'bad'}`}>
-          <span className="dot" />
-          {w.mode === 'manual' ? '수동 모드' : SENSOR_LABEL[w.sensorStatus]}
-          {w.mode === 'auto' && w.sensorStatus === 'active' && w.sampleRate > 0 && <span className="muted"> · {w.sampleRate}Hz</span>}
-          {w.wakeLock === 'active' && <span className="muted"> · 화면 켜짐 유지</span>}
-        </div>
-        <div className="ctrl-row">
-          <button className="btn-round" aria-label="1회 빼기" onClick={() => workout.adjust(-1)} disabled={ended}>
-            −1
-          </button>
-          {paused ? (
-            <button className="btn-primary btn-wide" onClick={() => workout.resume()}>
-              재개
-            </button>
-          ) : (
-            <button className="btn-secondary btn-wide" onClick={() => workout.pause()} disabled={ended || w.phase === 'starting'}>
-              일시정지
-            </button>
-          )}
-          <button className="btn-round btn-round-plus" aria-label="1회 더하기" onClick={() => workout.adjust(1)} disabled={ended}>
-            +1
-          </button>
-        </div>
-        <button className="btn-end" onClick={() => void end()} disabled={ended}>
-          운동 종료
-        </button>
-      </section>
+        <Button variant="secondary" className="btn-square" aria-label="1회 더하기" onClick={() => workout.adjust(1)} disabled={ended} icon={<Plus size={22} />}>
+          1
+        </Button>
+      </div>
+      <div className="wo-meta">
+        {w.mode === 'auto' && w.sensorStatus === 'active' && w.sampleRate > 0 && <span>센서 {w.sampleRate}Hz</span>}
+        {w.wakeLock === 'active' && <span>화면 켜짐 유지 중</span>}
+      </div>
+      <Button variant="text" className="btn-end" onClick={() => void end()} disabled={ended}>
+        운동 종료
+      </Button>
 
       {ended && (
         <div className="sheet-backdrop">
-          <div className="sheet" role="dialog" aria-label="운동 결과">
-            <div className="sheet-title">운동 완료</div>
-            <div className="sheet-big">{w.sessionReps}회</div>
-            <div className="sheet-sub">
-              오늘 {w.todayReps} / {DAILY_GOAL}
-              {w.todayReps >= DAILY_GOAL ? ' · 목표 달성' : ''}
+          <div className="sheet result" role="dialog" aria-label="운동 결과">
+            <div className="caption">운동 완료</div>
+            <div className="result-reps">
+              {w.sessionReps}
+              <small>회</small>
             </div>
+            <div className="result-today">
+              오늘 {w.todayReps} / {DAILY_GOAL}
+            </div>
+            {done && (
+              <div className="result-grape">
+                <GrapeBerry filled size={44} pop />
+                <span>오늘의 포도알을 모았어요</span>
+              </div>
+            )}
             {w.save.dirty ? (
               <>
-                <p className="error-text">
-                  {w.save.status === 'error' ? `저장 실패: ${w.save.error}` : '저장 중…'}
-                </p>
-                <button className="btn-primary" onClick={() => void workout.retrySave()} disabled={w.save.status === 'saving'}>
+                <p className="error-text">{w.save.status === 'error' ? `저장 실패: ${w.save.error}` : '저장 중…'}</p>
+                <Button onClick={() => void workout.retrySave()} disabled={w.save.status === 'saving'}>
                   다시 저장
-                </button>
+                </Button>
               </>
             ) : (
-              <button className="btn-primary" onClick={close}>
-                확인
-              </button>
+              <Button onClick={close}>확인</Button>
             )}
           </div>
         </div>
