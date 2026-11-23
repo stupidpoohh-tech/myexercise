@@ -6,7 +6,9 @@ import { dateKey, formatKorean, formatTime } from '../../core/util/date';
 import { storage } from '../../services';
 import { PageHeader } from '../components/Chrome';
 import { DayBerry } from '../components/graphics';
-import { Button, Card, Notice, SectionHeader } from '../components/ui';
+import { Button, Card, Notice, ProgressBar, SectionHeader } from '../components/ui';
+import { idleImage } from '../../character';
+import { useGrowth } from '../hooks/useGrowth';
 import { useDailyRecords, useToday } from '../hooks/useRecords';
 
 const STATUS_TEXT: Record<WorkoutSession['status'], string> = {
@@ -44,6 +46,7 @@ export function GrapesScreen() {
   const [sessions, setSessions] = useState<WorkoutSession[] | null>(null);
   const [notice, setNotice] = useState<{ tone: 'info' | 'error'; text: string } | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const growth = useGrowth();
 
   const map = useMemo(() => new Map(records.map((r) => [r.date, r])), [records]);
   const monthPrefix = `${cursor.y}-${String(cursor.m + 1).padStart(2, '0')}`;
@@ -209,6 +212,26 @@ export function GrapesScreen() {
             ))}
           </ul>
         ) : null}
+      </Card>
+
+      <Card className="growth-card" aria-label="캐릭터 성장">
+        <img className="growth-avatar" src={idleImage(growth.character)} alt={`${growth.stage}단계 캐릭터`} draggable={false} />
+        <div className="growth-body">
+          <div className="growth-title">
+            캐릭터 <b>{growth.stage}단계</b>
+            <span className="caption"> · 모은 포도알 {growth.grapes.toLocaleString('ko-KR')}개</span>
+          </div>
+          {growth.next ? (
+            <>
+              <ProgressBar value={growth.next.progress * 100} max={100} />
+              <div className="caption">
+                {growth.next.stage}단계까지 포도알 {growth.next.remaining}개 남음 (포도알 {growth.next.minGrapes}개에서 성장)
+              </div>
+            </>
+          ) : (
+            <div className="caption">마지막 단계까지 성장했어요</div>
+          )}
+        </div>
       </Card>
 
       <section>

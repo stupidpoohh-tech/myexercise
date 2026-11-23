@@ -9,8 +9,8 @@ import type { CharacterId } from './index';
  */
 export const GROWTH_STAGES: { stage: number; character: CharacterId; minGrapes: number }[] = [
   { stage: 1, character: '1', minGrapes: 0 },
-  { stage: 2, character: '2', minGrapes: 10 },
-  { stage: 3, character: '3', minGrapes: 30 },
+  { stage: 2, character: '2', minGrapes: 100 },
+  { stage: 3, character: '3', minGrapes: 200 },
 ];
 
 export interface Growth {

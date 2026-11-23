@@ -3,7 +3,6 @@ import { debugEnabled, storage, workout } from './services';
 import { BottomNav, hashFor, routeFromHash, type Route } from './ui/components/Chrome';
 import { DebugPanel } from './ui/components/DebugPanel';
 import { useWorkout } from './ui/hooks/useWorkout';
-import { CharacterScreen } from './ui/screens/CharacterScreen';
 import { GrapesScreen } from './ui/screens/GrapesScreen';
 import { WorkoutScreen } from './ui/screens/WorkoutScreen';
 
@@ -51,7 +50,6 @@ export default function App() {
     <div className={`app ${active ? 'is-working' : ''}`}>
       {current === 'workout' && <WorkoutScreen onStart={start} onExit={() => go('workout')} onNavigate={go} />}
       {current === 'grapes' && <GrapesScreen />}
-      {current === 'character' && <CharacterScreen />}
       {!active && <BottomNav route={current} onNavigate={go} />}
       {debugEnabled && <DebugPanel />}
     </div>

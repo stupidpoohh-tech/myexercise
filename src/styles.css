@@ -309,7 +309,7 @@ h1, h2, p, ol { margin: 0; }
 }
 
 /* 하단 탭 3개 */
-.bottom-nav { grid-template-columns: repeat(3, 1fr); }
+.bottom-nav { grid-template-columns: repeat(2, 1fr); }
 
 /* =========================================================
    포도알 탭
@@ -337,23 +337,11 @@ h1, h2, p, ol { margin: 0; }
 .badge-done { background: var(--soft); color: var(--deep); font-weight: 600; }
 .stats { grid-template-columns: repeat(4, 1fr); }
 
-/* ---------- 성장 ---------- */
-.growth-head { display: flex; align-items: center; justify-content: space-between; }
-.growth-grapes { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; color: var(--gray); }
-.growth-grapes b { color: var(--deep); font-size: 16px; }
-.growth-next { display: flex; flex-direction: column; gap: 8px; }
-.growth-next-text { font-size: 15px; color: var(--text); text-align: center; }
-.growth-next-text b { color: var(--deep); font-size: 18px; }
-.growth-max { text-align: center; font-size: 15px; font-weight: 600; color: var(--deep); }
-.growth-list { list-style: none; padding: 0; display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
-.growth-item { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 14px 8px 12px; border-radius: 20px; border: 1px solid var(--border); background: var(--white); }
-.growth-item.is-current { border-color: var(--primary); background: var(--pale); }
-.growth-thumb { position: relative; height: 110px; display: flex; align-items: flex-end; }
-.growth-thumb img { height: 100%; width: auto; }
-.growth-item.is-locked .growth-thumb img { filter: brightness(0); opacity: 0.1; }
-.growth-lock { position: absolute; inset: 0; display: grid; place-items: center; color: var(--gray); }
-.growth-label { font-size: 15px; font-weight: 600; }
-.growth-item.is-current .growth-label { color: var(--deep); }
-.growth-help { margin-top: 12px; line-height: 1.5; }
+/* ---------- 성장 (포도알 탭) ---------- */
+.growth-card { display: flex; align-items: center; gap: 14px; padding: 14px 18px; }
+.growth-avatar { height: 76px; width: auto; flex-shrink: 0; }
+.growth-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 8px; }
+.growth-title { font-size: 16px; }
+.growth-title b { color: var(--deep); font-weight: 700; }
 .result-grow { font-size: 16px; color: var(--text); }
 .result-grow b { color: var(--deep); }
