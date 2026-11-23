@@ -5,7 +5,7 @@ import type { RejectReason } from '../../core/types';
 import { workout } from '../../services';
 import { formatKorean } from '../../core/util/date';
 import { CharacterStage } from '../components/CharacterStage';
-import { AppHeader, type Route } from '../components/Chrome';
+import { AppHeader } from '../components/Chrome';
 import { GrapeBerry, SquatIcon } from '../components/graphics';
 import { SENSOR_LABEL, SensorHelp } from '../components/SensorHelp';
 import { Button, Card, Notice, ProgressBar } from '../components/ui';
@@ -31,18 +31,18 @@ const REJECT_TEXT: Record<RejectReason, string> = {
  * 운동 탭 (메인 화면). 운동 전에는 오늘의 스쿼트 · 캐릭터 · 시작 버튼만 한 화면에 보여 주고,
  * 운동 중에는 카운트 화면으로 전환한다.
  */
-export function WorkoutScreen({ onStart, onExit, onNavigate }: { onStart: () => void; onExit: () => void; onNavigate: (r: Route) => void }) {
+export function WorkoutScreen({ onStart, onExit }: { onStart: () => void; onExit: () => void }) {
   const w = useWorkout();
-  return w.phase === 'idle' ? <ReadyView onStart={onStart} onNavigate={onNavigate} /> : <ActiveView onExit={onExit} />;
+  return w.phase === 'idle' ? <ReadyView onStart={onStart} /> : <ActiveView onExit={onExit} />;
 }
 
-function ReadyView({ onStart, onNavigate }: { onStart: () => void; onNavigate: (r: Route) => void }) {
+function ReadyView({ onStart }: { onStart: () => void }) {
   const today = useToday();
   const { records, error } = useDailyRecords();
   const reps = records.find((r) => r.date === today)?.totalReps ?? 0;
   return (
     <main className="screen screen-fit">
-      <AppHeader onNavigate={onNavigate} />
+      <AppHeader />
       <h1 className="date-title">{formatKorean(today)}</h1>
 
       <Card className="today-card fit-card">

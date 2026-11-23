@@ -225,7 +225,7 @@ export function GrapesScreen() {
             <>
               <ProgressBar value={growth.next.progress * 100} max={100} />
               <div className="caption">
-                {growth.next.stage}단계까지 포도알 {growth.next.remaining}개 남음 (포도알 {growth.next.minGrapes}개에서 성장)
+                {growth.next.stage}단계까지 포도알 {growth.next.remaining}개 남음
               </div>
             </>
           ) : (

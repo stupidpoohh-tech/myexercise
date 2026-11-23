@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { debugEnabled, storage, workout } from './services';
-import { BottomNav, hashFor, routeFromHash, type Route } from './ui/components/Chrome';
+import { hashFor, routeFromHash, SwitchFab, type Route } from './ui/components/Chrome';
 import { DebugPanel } from './ui/components/DebugPanel';
 import { useWorkout } from './ui/hooks/useWorkout';
 import { GrapesScreen } from './ui/screens/GrapesScreen';
@@ -32,7 +32,7 @@ export default function App() {
     window.scrollTo(0, 0);
   }, [route]);
 
-  // 운동 중에는 항상 운동 화면 (하단 탭 숨김 — 실수로 세션을 벗어나지 않도록)
+  // 운동 중에는 항상 운동 화면 (전환 버튼 숨김 — 실수로 세션을 벗어나지 않도록)
   const current: Route = active ? 'workout' : route;
 
   const go = (r: Route) => {
@@ -48,9 +48,9 @@ export default function App() {
 
   return (
     <div className={`app ${active ? 'is-working' : ''}`}>
-      {current === 'workout' && <WorkoutScreen onStart={start} onExit={() => go('workout')} onNavigate={go} />}
+      {current === 'workout' && <WorkoutScreen onStart={start} onExit={() => go('workout')} />}
       {current === 'grapes' && <GrapesScreen />}
-      {!active && <BottomNav route={current} onNavigate={go} />}
+      {!active && <SwitchFab route={current} onNavigate={go} />}
       {debugEnabled && <DebugPanel />}
     </div>
   );
