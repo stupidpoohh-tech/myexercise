@@ -37,9 +37,12 @@ export interface SignalProcessorOptions {
   idleVelocityTau: number;
   /** 정지 판정 중 편향 보정 시간상수 (s) */
   restBiasTau: number;
-  /** 정지로 볼 최대 속도 (m/s) / 가속도 (m/s²) */
+  /** 정지 판정: 가속도 포락선 상한 (m/s²), 속도 상한 (m/s), 유지 시간 (s) */
   restVelocity: number;
   restAccel: number;
+  restHoldSec: number;
+  /** acc 가 없을 때 중력 크기 초기 추정 샘플 수 */
+  warmupSamples: number;
 }
 
 export const DEFAULT_SIGNAL_OPTIONS: SignalProcessorOptions = {
@@ -50,10 +53,12 @@ export const DEFAULT_SIGNAL_OPTIONS: SignalProcessorOptions = {
   shakeTau: 0.25,
   gapSec: 0.4,
   rotationResetDegPerSec: 90,
-  idleVelocityTau: 1.5,
+  idleVelocityTau: 0.6,
   restBiasTau: 1.5,
-  restVelocity: 0.06,
-  restAccel: 0.35,
+  restVelocity: 0.25,
+  restAccel: 0.14,
+  restHoldSec: 0.4,
+  warmupSamples: 60,
 };
 
 const G = 9.80665;
@@ -79,6 +84,8 @@ export class SignalProcessor {
   private shakeSq = 0;
   private rotLP = 0;
   private warm = 0;
+  private accEnv = 0;
+  private steady = 0;
   private motionActive = false;
 
   constructor(opts: Partial<SignalProcessorOptions> = {}) {
@@ -94,6 +101,8 @@ export class SignalProcessor {
     this.shakeSq = 0;
     this.rotLP = 0;
     this.warm = 0;
+    this.accEnv = 0;
+    this.steady = 0;
   }
 
   /**
@@ -147,9 +156,13 @@ export class SignalProcessor {
 
     // 3) 편향 제거. 센서 편향은 거의 변하지 않으므로 아주 느리게 추적한다.
     //    (빠르게 추적하면 스쿼트 가속도 자체를 편향으로 오인해 속도 추정이 왜곡된다)
-    //    처음 50샘플(1초 미만)은 누적 평균으로 수렴시킨다.
+    //    - acc(OS 가 중력을 제거한 값)가 있으면 편향이 거의 0이므로 0에서 시작한다.
+    //      시작 버튼을 누르는 순간의 손 움직임을 편향으로 잘못 굳히지 않기 위해서다.
+    //    - acc 가 없으면 중력 크기가 섞여 있으므로 처음 약 1초를 누적 평균으로 수렴시킨다.
     this.warm++;
-    const biasA = this.warm <= 50 ? 1 / this.warm : alpha(dt, o.biasTau);
+    const linear = !!s.acc;
+    if (linear && this.warm === 1) this.bias = 0;
+    const biasA = !linear && this.warm <= o.warmupSamples ? 1 / this.warm : alpha(dt, o.biasTau);
     this.bias += (vertical - this.bias) * biasA;
     const centered = vertical - this.bias;
 
@@ -165,11 +178,12 @@ export class SignalProcessor {
     this.rotLP += (rot - this.rotLP) * alpha(dt, 0.1);
 
     // 7) 누설 적분 → 수직 속도. 기기를 크게 돌리는 중에는 투영이 왜곡되므로 빠르게 0으로 감쇠한다.
-    const resting =
-      !this.motionActive &&
-      this.warm > 50 &&
-      Math.abs(this.velocity) < o.restVelocity &&
-      Math.abs(this.accelLP) < o.restAccel;
+    //    정지 판정은 '가속도가 일정 시간 잔잔한가'로 한다. 속도 추정값으로 판정하면
+    //    편향 때문에 속도가 떠 있을 때 영영 보정되지 않는다.
+    this.accEnv += (Math.abs(this.accelLP) - this.accEnv) * alpha(dt, 0.3);
+    if (!this.motionActive && this.accEnv < o.restAccel && Math.abs(this.velocity) < o.restVelocity) this.steady += dt;
+    else this.steady = 0;
+    const resting = this.steady >= o.restHoldSec && (linear || this.warm > o.warmupSamples);
     if (resting) {
       // 정지 중 남아 있는 속도는 대부분 편향 오차(e·τ)이므로 편향 추정에 되돌려 준다.
       this.bias += (this.velocity / o.velocityTau) * alpha(dt, o.restBiasTau);

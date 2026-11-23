@@ -1,7 +1,7 @@
-import { Download, Upload } from 'lucide-react';
+import { Activity, Download, Upload } from 'lucide-react';
 import { useRef, useState } from 'react';
 import { dateKey } from '../../core/util/date';
-import { storage } from '../../services';
+import { storage, workout } from '../../services';
 import { useDailyRecords } from '../hooks/useRecords';
 import { BottomSheet } from './BottomSheet';
 import { Notice } from './ui';
@@ -11,6 +11,29 @@ export function SettingsSheet({ open, onClose }: { open: boolean; onClose: () =>
   const { reload } = useDailyRecords();
   const fileRef = useRef<HTMLInputElement>(null);
   const [notice, setNotice] = useState<{ tone: 'info' | 'error'; text: string } | null>(null);
+
+  const download = (data: unknown, name: string) => {
+    const blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = name;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  };
+
+  const exportSensorLog = () => {
+    const log = workout.exportSensorLog();
+    if (!log.samples.length) {
+      setNotice({ tone: 'info', text: '아직 기록된 센서 값이 없습니다. 운동을 한 번 진행한 뒤 내보내 주세요.' });
+      return;
+    }
+    const stamp = new Date().toISOString().slice(0, 19).replace(/[-:T]/g, '');
+    download(log, `squat-sensor-log-${stamp}.json`);
+    setNotice({ tone: 'info', text: `센서 기록 ${Math.round(log.samples.length / 60)}초 분량을 내보냈습니다.` });
+  };
 
   const exportJson = async () => {
     try {
@@ -77,6 +100,16 @@ export function SettingsSheet({ open, onClose }: { open: boolean; onClose: () =>
             if (f) void importJson(f);
           }}
         />
+      </div>
+      <h3 className="bs-section">문제 진단</h3>
+      <div className="settings-list">
+        <button className="settings-item" onClick={exportSensorLog}>
+          <Activity size={20} strokeWidth={2} />
+          <span>
+            <b>센서 기록 내보내기</b>
+            <small>인식이 잘 안 된 운동 직후 내보내 전달해 주세요 · 최근 운동의 센서 값만 담깁니다</small>
+          </span>
+        </button>
       </div>
       {notice && <Notice tone={notice.tone === 'error' ? 'error' : 'info'} title={notice.text} />}
       <p className="caption settings-help">

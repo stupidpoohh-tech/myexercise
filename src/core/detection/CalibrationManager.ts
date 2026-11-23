@@ -6,7 +6,7 @@ export interface CalibrationProfile {
   createdAt: string;
   reps: number;
   /** 보정 결과로 덮어쓸 값 */
-  overrides: Pick<DetectorConfig, 'velStart' | 'minDepth' | 'expectedDepth' | 'maxShake' | 'maxAccel'>;
+  overrides: Pick<DetectorConfig, 'velStart' | 'minDepth' | 'expectedDepth' | 'maxShake' | 'maxAccel'> & Partial<Pick<DetectorConfig, 'startDepth'>>;
   /** 참고용 원시 통계 */
   stats: { medianDepth: number; medianPeakVel: number; medianDurationMs: number; medianShake: number };
 }
@@ -16,10 +16,12 @@ export const CALIBRATION_CONFIG: DetectorConfig = {
   ...DEFAULT_CONFIG,
   velStart: 0.07,
   minDepth: 0.04,
+  startDepth: 0.04,
   expectedDepth: null,
 };
 
-const STORAGE_KEY = 'squat.calibration.v1';
+// v2: 신호 처리(편향 추정·정지 판정) 변경으로 이전 보정값은 쓰지 않는다
+const STORAGE_KEY = 'squat.calibration.v2';
 
 function median(xs: number[]): number {
   const s = [...xs].sort((a, b) => a - b);
@@ -75,6 +77,7 @@ export class CalibrationManager {
       overrides: {
         velStart: clamp(peakVel * 0.3, 0.05, 0.3),
         minDepth: clamp(depth * 0.5, 0.03, 0.35),
+        startDepth: clamp(depth * 0.2, 0.03, 0.1),
         expectedDepth: clamp(depth, 0.05, 1),
         maxShake: clamp(Math.max(DEFAULT_CONFIG.maxShake, shake * 2.5), 0.5, 8),
         maxAccel: clamp(Math.max(DEFAULT_CONFIG.maxAccel, accel * 1.8), 2, 30),

@@ -42,6 +42,10 @@ export interface SimulatorOptions {
   gain: number;
   /** 부호 반전 (일부 플랫폼 규약 차이 모사) */
   invert: boolean;
+  /** 서 있을 때 몸의 느린 흔들림(0.2~0.7Hz) 진폭 (m/s²) */
+  sway: number;
+  /** 센서 편향이 시간에 따라 천천히 변하는 폭 (m/s²) */
+  biasDrift: number;
   seed: number;
 }
 
@@ -53,6 +57,8 @@ export const DEFAULT_SIM_OPTIONS: SimulatorOptions = {
   provideLinear: true,
   gain: 1,
   invert: false,
+  sway: 0,
+  biasDrift: 0,
   seed: 1,
 };
 
@@ -66,28 +72,47 @@ export class MotionScript {
   }
 
   /** 정상 스쿼트 1회 (depth m, 하강/최저/상승 ms) */
-  squat(opts: { depth?: number; downMs?: number; bottomMs?: number; upMs?: number } = {}): this {
+  squat(opts: { depth?: number; downMs?: number; bottomMs?: number; upMs?: number; leanDeg?: number } = {}): this {
     const D = opts.depth ?? 0.35;
     const down = opts.downMs ?? 1000;
     const bottom = opts.bottomMs ?? 150;
     const up = opts.upMs ?? 1000;
-    this.descend(D, down);
+    const lean = opts.leanDeg ?? 0;
+    this.descend(D, down, lean);
     if (bottom > 0) this.still(bottom);
-    this.ascend(D, up);
+    this.ascend(D, up, lean);
     return this;
   }
 
-  /** 하강만 */
-  descend(depth: number, ms: number): this {
+  /** 하강만. leanDeg: 앉으면서 상체가 앞으로 기울어 휴대폰도 함께 기우는 각도 */
+  descend(depth: number, ms: number, leanDeg = 0): this {
     const w = Math.PI / (ms / 1000);
-    this.segments.push({ durationMs: ms, at: (t) => ({ a: (-depth / 2) * w * w * Math.cos(w * (t / 1000)) }) });
+    this.segments.push({
+      durationMs: ms,
+      at: (t) => {
+        const x = w * (t / 1000);
+        return {
+          a: (-depth / 2) * w * w * Math.cos(x),
+          ...(leanDeg ? { tiltDeg: (leanDeg * (1 - Math.cos(x))) / 2, rot: Math.abs((leanDeg / 2) * w * Math.sin(x)) } : {}),
+        };
+      },
+    });
     return this;
   }
 
   /** 상승만 */
-  ascend(depth: number, ms: number): this {
+  ascend(depth: number, ms: number, leanDeg = 0): this {
     const w = Math.PI / (ms / 1000);
-    this.segments.push({ durationMs: ms, at: (t) => ({ a: (depth / 2) * w * w * Math.cos(w * (t / 1000)) }) });
+    this.segments.push({
+      durationMs: ms,
+      at: (t) => {
+        const x = w * (t / 1000);
+        return {
+          a: (depth / 2) * w * w * Math.cos(x),
+          ...(leanDeg ? { tiltDeg: (leanDeg * (1 + Math.cos(x))) / 2, rot: Math.abs((leanDeg / 2) * w * Math.sin(x)) } : {}),
+        };
+      },
+    });
     return this;
   }
 
@@ -168,7 +193,12 @@ export function renderScript(script: MotionScript, options: Partial<SimulatorOpt
       const up: Vec3 = { x: 0, y: Math.cos(tilt), z: Math.sin(tilt) };
       const side: Vec3 = { x: 1, y: 0, z: 0 };
       const tremor = o.tremor * Math.sin(2 * Math.PI * 9 * (t / 1000) + r() * 0.3);
-      const a = p.a + tremor;
+      const ts = t / 1000;
+      // 몸의 느린 흔들림: 여러 저주파 성분의 합
+      const sway = o.sway * (0.6 * Math.sin(2 * Math.PI * 0.23 * ts + 1.1) + 0.4 * Math.sin(2 * Math.PI * 0.51 * ts + 0.3) + 0.3 * Math.sin(2 * Math.PI * 0.71 * ts + 2.2));
+      // 센서 편향의 느린 변화 (주기 수십 초)
+      const drift = o.biasDrift * Math.sin(2 * Math.PI * ts / 23 + 0.7);
+      const a = p.a + tremor + sway + drift;
       const lat = p.lateral ?? 0;
       const sgn = o.invert ? -1 : 1;
       const n = () => gaussian(r) * o.noise;

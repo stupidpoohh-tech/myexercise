@@ -24,6 +24,7 @@ const REJECT_TEXT: Record<RejectReason, string> = {
   'ascent-timeout': '동작이 취소됐어요',
   'sensor-gap': '센서 신호가 끊겼어요',
   'too-erratic': '움직임이 불규칙해요',
+  noise: '',
 };
 
 /**

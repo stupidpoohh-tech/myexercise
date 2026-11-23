@@ -10,6 +10,7 @@ import { computeFinalReps, type DailyRecord, type WorkoutSession } from '../stor
 import type { MotionFrame, MotionSample, RejectReason, RepMetrics } from '../types';
 import { dateKey } from '../util/date';
 import { WakeLockController, type WakeLockState } from './WakeLock';
+import { SensorRecorder, type SensorLogFile } from '../sim/SensorLog';
 
 export type WorkoutPhase = 'idle' | 'starting' | 'calibrating' | 'running' | 'paused' | 'ended';
 
@@ -98,6 +99,8 @@ export class WorkoutSessionManager extends Emitter<ManagerEvents> {
   private retryTimer: ReturnType<typeof setTimeout> | null = null;
   private unsubs: (() => void)[] = [];
   private tracking = false;
+  /** 최근 운동의 센서 기록 (실기기 문제 진단용, 메모리에만 보관) */
+  readonly recorder = new SensorRecorder();
 
   constructor(deps: WorkoutManagerDeps = {}) {
     super();
@@ -140,10 +143,13 @@ export class WorkoutSessionManager extends Emitter<ManagerEvents> {
       this.sensor.on('sample', (s) => this.onSample(s)),
       this.sensor.on('status', (s) => this.onSensorStatus(s)),
       this.detector.on('frame', (f) => this.emit('frame', f)),
+      this.detector.on('state', (e) => this.recorder.event({ t: e.t, type: 'state', from: e.from, to: e.to })),
+      this.detector.on('rep', (m) => this.recorder.event({ t: m.endedAt, type: 'rep', metrics: m })),
+      this.detector.on('rejected', (r) => this.recorder.event({ t: r.t, type: 'rejected', reason: r.reason, metrics: r.metrics })),
       this.detector.on('rep', (m) => this.onDetectedRep(m)),
       this.detector.on('rejected', (r) => {
         const depth = r.metrics.depthDown ?? 0;
-        const significant = depth >= this.detector.config.minDepth * 0.6 || r.reason === 'sensor-gap';
+        const significant = r.reason !== 'noise' && (depth >= this.detector.config.minDepth * 0.6 || r.reason === 'sensor-gap');
         this.patch({ lastRejected: { reason: r.reason, at: Date.now(), significant } });
         this.emit('rejected', r.reason);
       }),
@@ -198,6 +204,7 @@ export class WorkoutSessionManager extends Emitter<ManagerEvents> {
     this.previousSegmentsReps = 0;
     this.otherTodayReps = 0;
     if (opts.recalibrate) this.setProfile(null);
+    this.recorder.clear();
     this.patch({
       phase: 'starting',
       mode,
@@ -321,6 +328,7 @@ export class WorkoutSessionManager extends Emitter<ManagerEvents> {
     const next = s.manualAdjustment + delta;
     if (computeFinalReps(s.autoReps, next) === computeFinalReps(s.autoReps, s.manualAdjustment) && delta < 0) return;
     this.session = { ...s, manualAdjustment: next, updatedAt: this.now().toISOString() };
+    if (typeof performance !== 'undefined') this.mark(delta > 0 ? 'manual+1' : 'manual-1');
     this.afterCountChange(null, delta > 0);
   }
 
@@ -467,6 +475,7 @@ export class WorkoutSessionManager extends Emitter<ManagerEvents> {
   private onSample(s: MotionSample): void {
     const phase = this.snap.phase;
     if (phase !== 'running' && phase !== 'calibrating') return;
+    this.recorder.sample(s);
     this.pipeline.push(s);
   }
 
@@ -493,6 +502,16 @@ export class WorkoutSessionManager extends Emitter<ManagerEvents> {
   refreshSensorInfo(): void {
     const r = Math.round(this.sensor.sampleRate);
     if (r !== this.snap.sampleRate) this.patch({ sampleRate: r });
+  }
+
+  /** 센서 기록 내보내기 (설정 > 문제 진단) */
+  exportSensorLog(): SensorLogFile {
+    return this.recorder.export(this.detector.config, this.profile !== null);
+  }
+
+  /** 수동 보정 등 사용자가 '인식이 틀렸다'고 알려 준 시점을 기록에 표시 */
+  private mark(label: string): void {
+    this.recorder.event({ t: performance.now(), type: 'mark', label });
   }
 
   // ---------------------------------------------------------------- 임계값

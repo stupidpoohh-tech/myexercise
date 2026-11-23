@@ -10,6 +10,8 @@ export interface DetectorConfig {
   velEndRatio: number;
   /** 시작 속도가 이 시간 이상 유지되어야 동작 시작으로 인정 (ms) */
   startHoldMs: number;
+  /** 이만큼(m, 상대값) 내려가야 하강으로 확정 — 서 있을 때의 흔들림 제외 */
+  startDepth: number;
   /** 하강·상승 각 구간 최소 시간 (ms) — 짧은 흔들기 제외 */
   minPhaseMs: number;
   /** 하강 구간 최대 시간 (ms) */
@@ -48,6 +50,7 @@ export const DEFAULT_CONFIG: DetectorConfig = {
   velStart: 0.1,
   velEndRatio: 0.25,
   startHoldMs: 90,
+  startDepth: 0.05,
   minPhaseMs: 250,
   maxDescentMs: 3500,
   maxAscentMs: 3500,
@@ -59,8 +62,8 @@ export const DEFAULT_CONFIG: DetectorConfig = {
   maxSymmetry: 4.5,
   maxShake: 2.2,
   maxAccel: 9,
-  maxRotation: 150,
-  maxTiltDeg: 40,
+  maxRotation: 260,
+  maxTiltDeg: 75,
   maxZeroCrossings: 7,
   refractoryMs: 350,
   maxSampleGapMs: 400,
@@ -72,6 +75,7 @@ export const CONFIG_LIMITS: Partial<Record<keyof DetectorConfig, [number, number
   velStart: [0.02, 0.5, 0.01],
   velEndRatio: [0.05, 0.6, 0.01],
   startHoldMs: [0, 400, 10],
+  startDepth: [0.01, 0.2, 0.01],
   minPhaseMs: [50, 1000, 10],
   minRepMs: [200, 3000, 50],
   maxRepMs: [2000, 20000, 500],

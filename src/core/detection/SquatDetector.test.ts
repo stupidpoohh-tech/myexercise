@@ -142,3 +142,56 @@ describe('알려진 한계 (실기기 검증 필요)', () => {
     expect(run(pump).reps).toBeGreaterThan(0);
   });
 });
+
+describe('실사용 조건 (실기기 문제 재현)', () => {
+  const falseStarts = (script: MotionScript, sim: Partial<SimulatorOptions>) => {
+    const r = run(script, sim);
+    return { reps: r.reps, descents: r.states.filter((s) => s === 'DESCENDING').length };
+  };
+
+  it('가만히 서 있을 때 몸이 조금 흔들려도 하강으로 판정하지 않는다 (캐릭터가 혼자 움직이지 않음)', () => {
+    expect(falseStarts(new MotionScript().still(60000), { sway: 0.15 })).toEqual({ reps: 0, descents: 0 });
+  });
+
+  it('센서 편향이 천천히 변해도 하강으로 판정하지 않는다', () => {
+    expect(falseStarts(new MotionScript().still(60000), { biasDrift: 0.06 })).toEqual({ reps: 0, descents: 0 });
+  });
+
+  it('시작 버튼을 누르며 휴대폰이 움직여도 이후 정지 상태에서 오판하지 않는다', () => {
+    // 처음 1초는 실제로 휴대폰이 움직인 구간 — 그 뒤 40초 정지 동안 하강 판정이 없어야 한다
+    const s = new MotionScript().shake({ freqHz: 2, amplitude: 0.04, ms: 1000 }).still(40000);
+    const pipe = new MotionPipeline(DEFAULT_CONFIG);
+    const late: number[] = [];
+    pipe.detector.on('state', (e) => e.to === 'DESCENDING' && e.t > 2000 && late.push(e.t));
+    for (const x of renderScript(s, { sway: 0.05 })) pipe.push(x);
+    expect(late).toEqual([]);
+  });
+
+  it('시작 직후 움직임이 있어도 이어지는 스쿼트를 정상 인식', () => {
+    const s = new MotionScript().shake({ freqHz: 2, amplitude: 0.04, ms: 1000 }).still(1500);
+    for (let i = 0; i < 6; i++) s.squat().still(500);
+    expect(run(s.still(1000), { sway: 0.08 }).reps).toBe(6);
+  });
+
+  for (const lean of [20, 35, 50]) {
+    it(`앉으면서 상체가 ${lean}° 기울어도 인식 (몸 흔들림 포함)`, () => {
+      const s = new MotionScript().still(1500);
+      for (let i = 0; i < 8; i++) s.squat({ leanDeg: lean }).still(500);
+      expect(run(s.still(1000)).reps).toBe(8);
+      expect(run(s, { sway: 0.15, biasDrift: 0.04 }).reps).toBe(8);
+    });
+  }
+
+  it('얕게 내려갔다 멈추면 캐릭터를 움직이지 않고, 안내 문구도 띄우지 않는다', () => {
+    const r = run(new MotionScript().still(1500).descend(0.04, 600).still(3000));
+    expect(r.states).toEqual([]);
+    expect(r.rejected.filter((x) => x !== 'noise')).toEqual([]);
+  });
+
+  it('하강으로 확정된 뒤 충분히 앉지 않고 멈추면 최저 자세에서 기다리지 않는다', () => {
+    const cfg = { ...DEFAULT_CONFIG, minDepth: 0.15 };
+    const r = run(new MotionScript().still(1500).descend(0.1, 700).still(3000), {}, cfg);
+    expect(r.states).toEqual(['DESCENDING', 'IDLE']);
+    expect(r.rejected).toEqual(['noise']);
+  });
+});

@@ -58,7 +58,9 @@ export type RejectReason =
   | 'descent-timeout'
   | 'ascent-timeout'
   | 'sensor-gap'
-  | 'too-erratic';
+  | 'too-erratic'
+  /** 확정 전 작은 움직임 — 사용자에게 알리지 않는다 */
+  | 'noise';
 
 export interface RepMetrics {
   startedAt: number;

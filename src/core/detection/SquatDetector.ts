@@ -104,13 +104,18 @@ export class SquatDetector extends Emitter<DetectorEvents> {
           this.peakVelDown = Math.max(this.peakVelDown, -v);
           const held = s.t - this.candidateT >= c.startHoldMs;
           const refractoryOk = s.t - this.lastCompleteT >= c.refractoryMs;
-          if (held && refractoryOk) {
+          // 속도만으로는 서 있을 때의 몸 흔들림·센서 편향과 구분되지 않으므로,
+          // 실제로 일정 거리 이상 내려간 뒤에야 하강으로 확정한다.
+          const deepEnough = this.depthDown >= c.startDepth;
+          if (held && refractoryOk && deepEnough) {
             this.repStart = this.candidateT;
             this.descentStart = this.candidateT;
             this.setState('DESCENDING', s.t);
           }
-        } else {
+        } else if (this.candidateT !== null && v > -c.velStart * 0.5) {
+          // 확정 전에 멈춤 — 흔들림으로 보고 조용히 버린다 (캐릭터도 움직이지 않는다)
           this.candidateT = null;
+          this.resetAccumulators();
         }
         break;
       }
@@ -121,7 +126,10 @@ export class SquatDetector extends Emitter<DetectorEvents> {
         this.peakVelDown = Math.max(this.peakVelDown, -v);
         if (-v < this.peakVelDown * c.velEndRatio) {
           this.descentEnd = s.t;
-          if (s.t - this.descentStart < c.minPhaseMs) {
+          if (this.depthDown < c.minDepth) {
+            // 충분히 앉지 않고 멈춤 — 최저 자세에서 기다리지 않고 바로 대기로 돌아간다
+            this.reject('noise', s.t);
+          } else if (s.t - this.descentStart < c.minPhaseMs) {
             this.reject('too-fast', s.t);
           } else {
             this.bottomStart = s.t;
