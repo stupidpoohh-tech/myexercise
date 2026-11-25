@@ -117,6 +117,24 @@ interface CharacterRenderer {
 - 모든 임계값 슬라이더 (localStorage 저장), 보정값 삭제
 - 가상 센서 모드와 시나리오(normal/slow/fast/stopped/shake/rotate/dropout) 재생
 
+## 포도알 공유 (링크로 실시간 보기)
+
+설정 → 포도알 공유 → '공유 링크 만들기'로 링크(`/#/s/<id>`)를 만들어 보낼 수 있습니다. 받은 사람은 로그인 없이 읽기 전용으로 포도알 스티커판, 오늘 횟수, 캐릭터 단계, 연속·누적 기록을 보고, 화면을 열어 두면 20초마다 새로고침됩니다.
+
+- 구조: 기록은 여전히 기기(IndexedDB)에 저장되고, 공유를 켠 경우에만 **요약**(날짜별 총 횟수, 캐릭터 단계, 선택한 이름)을 Cloudflare Pages Functions(`functions/api/share/[id].ts` → `src/server/share.ts`) → Workers KV 에 올립니다. 세션 시각 등 세부 기록은 올리지 않습니다.
+- 갱신: 기록이 저장될 때마다 2.5초 단위로 모아 올리고, 운동 종료·앱 열기·화면 복귀 시 즉시 올립니다.
+- 권한: 링크 ID 와 별도로 기기에만 있는 비밀 키(서버에는 SHA-256 해시만 저장)가 있어야 수정·삭제할 수 있습니다. '공유 중지'는 서버 데이터를 삭제합니다.
+- 반영 지연: Workers KV 는 지역 간 전파에 최대 약 1분이 걸릴 수 있습니다.
+
+### Cloudflare 설정 (최초 1회)
+
+1. Cloudflare 대시보드 → **Storage & Databases → KV** → **Create** → 이름 예: `myexercise-share`
+2. **Workers & Pages** → 이 Pages 프로젝트 → **Settings → Bindings** → **Add → KV namespace**
+   - Variable name: `SHARE_KV` / KV namespace: 위에서 만든 것 (Production, 필요하면 Preview 에도)
+3. **Deployments** 에서 최신 배포를 **Retry deployment** (바인딩은 새 배포부터 적용)
+
+설정 전에는 공유 링크를 만들 때 '공유 서버가 아직 설정되지 않았습니다'라고 안내합니다. 무료 플랜의 KV 쓰기 한도는 하루 1,000회이며, 100회 운동 한 번에 수십 회 정도 씁니다.
+
 ## 실기기 문제 진단
 
 설정 → 문제 진단 → **센서 기록 내보내기**로 최근 운동(최대 5분)의 원시 센서 값과 판정 이벤트, 수동 보정 시점을 JSON 으로 받습니다. 파일을 `sensor-logs/` 에 넣고 `npm run replay` 를 실행하면 현재 판정 로직으로 재생해 결과를 비교합니다. 임계값을 바꾼 뒤 같은 기록으로 개선 여부를 확인할 수 있습니다.

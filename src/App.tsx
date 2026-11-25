@@ -4,9 +4,27 @@ import { hashFor, routeFromHash, SwitchFab, type Route } from './ui/components/C
 import { DebugPanel } from './ui/components/DebugPanel';
 import { useWorkout } from './ui/hooks/useWorkout';
 import { GrapesScreen } from './ui/screens/GrapesScreen';
+import { SharedScreen } from './ui/screens/SharedScreen';
 import { WorkoutScreen } from './ui/screens/WorkoutScreen';
 
+/** 공유 링크 (#/s/:id) — 받은 사람이 보는 읽기 전용 화면 */
+function sharedIdFromHash(hash: string): string | null {
+  const m = /^#\/s\/([A-Za-z0-9]{10,32})/.exec(hash);
+  return m ? m[1] : null;
+}
+
 export default function App() {
+  const [sharedId, setSharedId] = useState(() => sharedIdFromHash(location.hash));
+  useEffect(() => {
+    const on = () => setSharedId(sharedIdFromHash(location.hash));
+    window.addEventListener('hashchange', on);
+    return () => window.removeEventListener('hashchange', on);
+  }, []);
+  if (sharedId) return <div className="app"><SharedScreen id={sharedId} /></div>;
+  return <OwnerApp />;
+}
+
+function OwnerApp() {
   const [route, setRoute] = useState<Route>(() => routeFromHash(location.hash));
   const w = useWorkout();
   const active = w.phase !== 'idle';

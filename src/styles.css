@@ -257,6 +257,33 @@ h1, h2, h3, p, ol, dl { margin: 0; }
 .settings-item small { font-size: 13px; color: var(--gray); }
 .settings-help { line-height: 1.6; font-size: 13px; padding: 14px 16px; border-radius: var(--r-md); background: var(--surface-2); }
 
+/* ---------- 포도알 공유 (설정) ---------- */
+.share-box { display: flex; flex-direction: column; gap: 10px; }
+.share-desc { font-size: 13px; color: var(--gray); line-height: 1.55; }
+.input { height: 52px; padding: 0 16px; border-radius: var(--r-md); border: 0; background: var(--surface); font: inherit; font-size: 16px; color: var(--ink); outline: none; }
+.input:focus { box-shadow: inset 0 0 0 2px var(--blue); }
+.input::placeholder { color: var(--gray-2); }
+.share-link { padding: 14px 16px; border-radius: var(--r-md); background: var(--surface); font-size: 14px; color: var(--ink-2); word-break: break-all; user-select: all; -webkit-user-select: all; }
+.share-actions { display: grid; grid-template-columns: 1fr 108px; gap: 8px; }
+.share-meta { display: flex; align-items: center; justify-content: space-between; font-size: 13px; color: var(--gray); }
+.share-stop { font-size: 13px; font-weight: 600; color: var(--danger); height: 32px; }
+.share-msg { color: var(--blue-text); }
+
+/* ---------- 공유 링크로 보는 화면 ---------- */
+.shared-screen { padding-bottom: calc(env(safe-area-inset-bottom) + 24px); }
+.shared-screen .wordmark { text-decoration: none; }
+.shared-center { min-height: 50dvh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; text-align: center; }
+.shared-empty-title { font-size: 18px; font-weight: 700; }
+.shared-hero { display: flex; align-items: center; gap: 16px; padding: 16px 18px; border-radius: var(--r-lg); background: var(--surface-2); }
+.shared-avatar { height: 112px; width: auto; flex-shrink: 0; }
+.shared-hero-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 8px; }
+.shared-title { font-size: 20px; font-weight: 700; letter-spacing: -0.04em; }
+.shared-today { display: flex; align-items: baseline; justify-content: space-between; font-size: 13px; color: var(--gray); }
+.shared-today b { font-size: 28px; font-weight: 700; color: var(--ink); letter-spacing: -0.04em; font-variant-numeric: tabular-nums; }
+.shared-today small { font-size: 14px; color: var(--gray-2); font-weight: 600; margin-left: 2px; }
+.shared-screen .kstats-line { justify-content: center; flex-wrap: wrap; row-gap: 4px; }
+.shared-foot { text-align: center; }
+
 /* ---------- 디버그 (?debug=1) ---------- */
 .dbg-fab { position: fixed; right: 12px; bottom: calc(env(safe-area-inset-bottom) + 160px); z-index: 30; background: #242329; color: #fff; border-radius: 10px; padding: 6px 10px; font-size: 12px; font-weight: 700; }
 .dbg { position: fixed; left: 8px; right: 8px; top: 8px; max-height: 70dvh; overflow: auto; z-index: 29; background: rgba(20, 22, 28, 0.96); color: #e8eaef; border-radius: 14px; padding: 10px; font-size: 13px; }

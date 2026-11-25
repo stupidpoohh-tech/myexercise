@@ -6,26 +6,9 @@ import { dateKey, formatKorean, formatTime, parseKey } from '../../core/util/dat
 import { storage } from '../../services';
 import { BottomSheet } from '../components/BottomSheet';
 import { PageHeader } from '../components/Chrome';
-import { DayBerry } from '../components/graphics';
+import { GrapeBunch } from '../components/GrapeBunch';
 import { SettingsSheet } from '../components/SettingsSheet';
 import { useDailyRecords, useToday } from '../hooks/useRecords';
-
-/**
- * 포도송이 모양 배치. 위에서부터 줄마다 놓을 알 수이며, 날짜 수(28~31)만큼 앞에서부터 채운다.
- * 합계 31 — 짧은 달은 아래쪽 끝이 줄어든다.
- */
-const BUNCH_ROWS = [5, 6, 6, 5, 4, 3, 2];
-
-function bunchRows(days: number): number[][] {
-  const rows: number[][] = [];
-  let d = 1;
-  for (const n of BUNCH_ROWS) {
-    const row: number[] = [];
-    for (let i = 0; i < n && d <= days; i++) row.push(d++);
-    if (row.length) rows.push(row);
-  }
-  return rows;
-}
 
 const STATUS_TEXT: Record<WorkoutSession['status'], string> = {
   active: '진행 중',
@@ -50,8 +33,6 @@ export function GrapesScreen() {
   const monthPrefix = `${cursor.y}-${String(cursor.m + 1).padStart(2, '0')}`;
   const stats = useMemo(() => computeStats(records, today, monthPrefix), [records, today, monthPrefix]);
   const daysInMonth = new Date(cursor.y, cursor.m + 1, 0).getDate();
-  const rows = bunchRows(daysInMonth);
-  const keyOf = (day: number) => dateKey(new Date(cursor.y, cursor.m, day));
 
   const move = (delta: number) => {
     const d = new Date(cursor.y, cursor.m + delta, 1);
@@ -93,31 +74,7 @@ export function GrapesScreen() {
           <span>/{daysInMonth}일</span>
         </p>
 
-        <div className="bunch">
-          <svg className="bunch-top" viewBox="0 0 48 26" aria-hidden="true">
-            <path d="M22 26 V12 C22 7 23.5 4 27 2" stroke="var(--stem)" strokeWidth="2.4" fill="none" strokeLinecap="round" />
-            <path d="M24 11 C28 3 39 2 44 7 C39 13 29 15 24 11Z" fill="var(--leaf)" />
-          </svg>
-          {rows.map((row, i) => (
-            <div className="bunch-row" key={i}>
-              {row.map((day) => {
-                const k = keyOf(day);
-                const reps = map.get(k)?.totalReps ?? 0;
-                return (
-                  <button
-                    key={day}
-                    className="bunch-berry"
-                    onClick={() => setSelected(k)}
-                    aria-pressed={k === selected}
-                    aria-label={`${formatKorean(k)} ${reps}회${reps >= DAILY_GOAL ? ', 목표 달성' : ''}${k === today ? ', 오늘' : ''}`}
-                  >
-                    <DayBerry day={day} ratio={reps / DAILY_GOAL} today={k === today} selected={k === selected} />
-                  </button>
-                );
-              })}
-            </div>
-          ))}
-        </div>
+        <GrapeBunch year={cursor.y} month0={cursor.m} repsOf={(k) => map.get(k)?.totalReps ?? 0} today={today} selected={selected} onSelect={setSelected} />
       </section>
 
       {/* 2순위: 핵심 통계 */}
